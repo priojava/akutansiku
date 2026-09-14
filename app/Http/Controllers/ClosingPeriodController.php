@@ -46,15 +46,25 @@ class ClosingPeriodController extends Controller
         // Ambil data kertas kerja / worksheet matriks 6 kolom
         $worksheet = $this->closingService->getWorksheet($company->id, $closingDate);
 
-        // Akun Beban Pajak
+        // Akun Beban Pajak (Hanya akun beban / pengeluaran)
         $taxExpenseAccounts = Account::where('company_id', $company->id)
-            ->whereIn('category', ['Beban', 'Beban Lainnya'])
+            ->where(function($q) {
+                $q->whereIn('category', ['Beban', 'Beban Lainnya'])
+                  ->orWhere('code', 'like', '6-%')
+                  ->orWhere('code', 'like', '8-%');
+            })
+            ->where('code', 'not like', '1-%')
+            ->where('code', 'not like', '2-%')
             ->orderBy('code')
             ->get();
 
-        // Akun Hutang Pajak
+        // Akun Hutang Pajak (Hanya akun kewajiban / hutang)
         $taxPayableAccounts = Account::where('company_id', $company->id)
-            ->whereIn('category', ['Akun Hutang', 'Liabilitas Jangka Pendek Lainnya'])
+            ->where(function($q) {
+                $q->whereIn('category', ['Akun Hutang', 'Liabilitas Jangka Pendek Lainnya', 'Kewajiban Lancar Lainnya'])
+                  ->orWhere('code', 'like', '2-%');
+            })
+            ->where('code', 'like', '2-%')
             ->orderBy('code')
             ->get();
 
@@ -67,11 +77,17 @@ class ClosingPeriodController extends Controller
             ->get();
 
         // Default selections
-        $defaultTaxExpense = $taxExpenseAccounts->firstWhere('code', '6-60000') ?? $taxExpenseAccounts->first();
-        $defaultTaxPayable = $taxPayableAccounts->firstWhere('code', '2-20100') ?? $taxPayableAccounts->first();
-        $defaultEquity = $equityAccounts->firstWhere('name', 'Laba Ditahan') 
-            ?? $equityAccounts->firstWhere('code', '3-30000') 
-            ?? $equityAccounts->firstWhere('code', '3-30999')
+        $defaultTaxExpense = $taxExpenseAccounts->firstWhere('code', '8-80200')
+            ?? $taxExpenseAccounts->first(fn($a) => str_contains(strtolower($a->name), 'pajak'))
+            ?? $taxExpenseAccounts->first();
+
+        $defaultTaxPayable = $taxPayableAccounts->firstWhere('code', '2-20505')
+            ?? $taxPayableAccounts->firstWhere('code', '2-20504')
+            ?? $taxPayableAccounts->first(fn($a) => str_contains(strtolower($a->name), 'pajak'))
+            ?? $taxPayableAccounts->first();
+
+        $defaultEquity = $equityAccounts->firstWhere('code', '3-30100')
+            ?? $equityAccounts->firstWhere('name', 'Laba Ditahan') 
             ?? $equityAccounts->first();
 
         return view('closing.create', compact(
