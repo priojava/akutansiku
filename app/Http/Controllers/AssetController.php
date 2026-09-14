@@ -221,6 +221,7 @@ class AssetController extends Controller
         $no = 1;
         foreach ($assets as $a) {
             $isDep = $a->is_depreciated ? 'Ya' : 'Tidak';
+            $metode = $a->depreciation_method === 'declining_balance' ? 'Saldo Menurun' : ($a->is_depreciated ? 'Garis Lurus' : '-');
             if ($a->useful_life_months) {
                 $thn = floor($a->useful_life_months / 12);
                 $bln = $a->useful_life_months % 12;
