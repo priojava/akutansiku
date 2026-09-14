@@ -60,20 +60,22 @@ class SettingController extends Controller
         }
 
         $modelsToTry = [
-            config('services.gemini.model', 'gemini-1.5-flash'),
+            'gemini-flash-latest',
+            config('services.gemini.model', 'gemini-flash-latest'),
             'gemini-2.0-flash',
+            'gemini-1.5-flash',
             'gemini-1.5-flash-latest',
             'gemini-1.5-pro',
         ];
 
         $lastError = 'Gagal terhubung ke layanan Google.';
 
-        foreach ($modelsToTry as $model) {
+        foreach (array_unique($modelsToTry) as $model) {
             try {
-                $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+                $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
                 $response = \Illuminate\Support\Facades\Http::timeout(10)
                     ->withHeaders([
-                        'x-goog-api-key' => $apiKey,
+                        'X-goog-api-key' => $apiKey,
                         'Content-Type' => 'application/json',
                     ])
                     ->post($endpoint, [
@@ -89,6 +91,28 @@ class SettingController extends Controller
                             'responseMimeType' => 'application/json',
                         ]
                     ]);
+
+                if ($response->status() === 503) {
+                    usleep(500000);
+                    $response = \Illuminate\Support\Facades\Http::timeout(10)
+                        ->withHeaders([
+                            'X-goog-api-key' => $apiKey,
+                            'Content-Type' => 'application/json',
+                        ])
+                        ->post($endpoint, [
+                            'contents' => [
+                                [
+                                    'parts' => [
+                                        ['text' => 'Balas hanya format JSON: {"status": "ok", "message": "Koneksi Google Gemini Berhasil!"}']
+                                    ]
+                                ]
+                            ],
+                            'generationConfig' => [
+                                'temperature' => 0.1,
+                                'responseMimeType' => 'application/json',
+                            ]
+                        ]);
+                }
 
                 if ($response->successful()) {
                     $body = $response->json();

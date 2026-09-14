@@ -82,27 +82,41 @@ Keluarkan respon HANYA berupa JSON murni dengan format spesifik berikut:
 }
 EOT;
 
-        $model = config('services.gemini.model', 'gemini-1.5-flash');
-        $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-
-        $response = Http::timeout(10)->withHeaders([
-            'Content-Type' => 'application/json',
-        ])->post($endpoint, [
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => $prompt]
-                    ]
-                ]
-            ],
-            'generationConfig' => [
-                'temperature' => 0.1,
-                'responseMimeType' => 'application/json',
-            ]
+        $modelsToTry = array_unique([
+            config('services.gemini.model', 'gemini-flash-latest'),
+            'gemini-flash-latest',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
         ]);
 
-        if (!$response->successful()) {
-            Log::warning('Gemini API returned error status: ' . $response->status() . ' - ' . $response->body());
+        $response = null;
+        foreach ($modelsToTry as $model) {
+            $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
+            $resp = Http::timeout(10)->withHeaders([
+                'X-goog-api-key' => $apiKey,
+                'Content-Type' => 'application/json',
+            ])->post($endpoint, [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.1,
+                    'responseMimeType' => 'application/json',
+                ]
+            ]);
+
+            if ($resp->successful()) {
+                $response = $resp;
+                break;
+            }
+        }
+
+        if (!$response || !$response->successful()) {
+            Log::warning('Gemini API returned error: ' . ($response ? $response->body() : 'no response'));
             return null;
         }
 
