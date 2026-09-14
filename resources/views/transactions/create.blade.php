@@ -681,15 +681,13 @@
 
                         <!-- Kontak -->
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pelanggan / Vendor / Kontak
-                                (Opsional)</label>
-                            <select name="contact_id"
-                                class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                <option value="">Tanpa Kontak...</option>
-                                @foreach($contacts as $c)
-                                    <option value="{{ $c->id }}">{{ $c->name }} ({{ ucfirst($c->type) }})</option>
-                                @endforeach
-                            </select>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pelanggan / Vendor / Kontak (Opsional)</label>
+                            <x-searchable-contact-select 
+                                name="contact_id" 
+                                :options="$contacts" 
+                                :selected="old('contact_id')" 
+                                placeholder="Tanpa Kontak..." 
+                                :required="false" />
                         </div>
 
                         <!-- Link Opsional (Tag & Pajak) -->
