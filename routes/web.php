@@ -92,6 +92,7 @@ Route::prefix('reports')->name('reports.')->group(function () {
 Route::prefix('settings')->name('settings.')->group(function () {
     Route::get('/main', [SettingController::class, 'main'])->name('main');
     Route::post('/main', [SettingController::class, 'updateMain'])->name('main.update');
+    Route::post('/main/test-gemini', [SettingController::class, 'testGeminiAi'])->name('main.test_gemini');
     Route::get('/account-mappings', [SettingController::class, 'accountMappings'])->name('account_mappings');
     Route::post('/account-mappings', [SettingController::class, 'updateAccountMappings'])->name('account_mappings.update');
     Route::get('/profile', [SettingController::class, 'profile'])->name('profile');
