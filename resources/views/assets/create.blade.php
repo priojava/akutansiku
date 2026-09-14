@@ -133,9 +133,22 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Masa Manfaat (Tahun)</label>
-                            <input type="number" name="useful_life_years" min="1" max="50" value="{{ old('useful_life_years', 4) }}"
-                                   class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Masa Manfaat</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="relative">
+                                    <input type="number" name="useful_life_years" min="0" max="50" value="{{ old('useful_life_years', 4) }}"
+                                           placeholder="0"
+                                           class="w-full px-3 py-2.5 pr-12 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                    <span class="absolute right-3 top-2.5 text-[11px] text-slate-400 font-semibold pointer-events-none">Tahun</span>
+                                </div>
+                                <div class="relative">
+                                    <input type="number" name="useful_life_months" min="0" max="11" value="{{ old('useful_life_months', 0) }}"
+                                           placeholder="0"
+                                           class="w-full px-3 py-2.5 pr-12 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                    <span class="absolute right-3 top-2.5 text-[11px] text-slate-400 font-semibold pointer-events-none">Bulan</span>
+                                </div>
+                            </div>
+                            <span class="text-[10px] text-slate-400 mt-1 block">Jika 6 bulan: isi <strong>0 Tahun, 6 Bulan</strong></span>
                         </div>
                     </div>
 

@@ -137,7 +137,17 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-center font-medium">
-                                {{ $asset->useful_life_years ? $asset->useful_life_years . ' Tahun' : '-' }}
+                                @if($asset->useful_life_months)
+                                    @php
+                                        $thn = floor($asset->useful_life_months / 12);
+                                        $bln = $asset->useful_life_months % 12;
+                                    @endphp
+                                    {{ $thn > 0 ? $thn . ' Thn ' : '' }}{{ $bln > 0 ? $bln . ' Bln' : ($thn == 0 ? '-' : '') }}
+                                @elseif($asset->useful_life_years)
+                                    {{ $asset->useful_life_years }} Tahun
+                                @else
+                                    -
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-slate-700">
                                 {{ $asset->expenseAccount?->name ?: '-' }}
