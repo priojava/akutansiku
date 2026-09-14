@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Panduan & Tutorial Fitur Aplikasi Cloud Accounting (SaaS)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        @page {
+            size: A4 portrait;
+            margin: 18mm 14mm 18mm 14mm;
+            @bottom-right {
+                content: counter(page);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.55;
+            font-size: 11pt;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .cover-page {
+            page-break-after: always;
+            height: 96vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 40px 20px 20px 20px;
+            border-left: 8px solid #2563eb;
+            background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+            border-radius: 4px;
+        }
+
+        .cover-header {
+            margin-top: 40px;
+        }
+
+        .badge-cover {
+            display: inline-block;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 9pt;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .cover-title {
+            font-size: 32pt;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.15;
+            margin: 0 0 16px 0;
+        }
+
+        .cover-subtitle {
+            font-size: 14pt;
+            font-weight: 400;
+            color: #475569;
+            max-width: 580px;
+            line-height: 1.5;
+            margin: 0 0 30px 0;
+        }
+
+        .cover-meta {
+            border-top: 2px solid #cbd5e1;
+            padding-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .meta-item {
+            font-size: 10pt;
+        }
+
+        .meta-label {
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 8pt;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            color: #0f172a;
+            font-weight: 700;
+            font-size: 11pt;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        h1 {
+            font-size: 18pt;
+            font-weight: 800;
+            color: #0f172a;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+            margin-top: 28px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        h1 .icon {
+            margin-right: 10px;
+        }
+
+        h2 {
+            font-size: 13pt;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #334155;
+            margin-top: 14px;
+            margin-bottom: 6px;
+        }
+
+        p {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #334155;
+            font-size: 10pt;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 12pt;
+            font-weight: 700;
+            color: #1e40af;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 600;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        .step-list {
+            padding-left: 20px;
+            margin: 6px 0 10px 0;
+        }
+
+        .step-list li {
+            margin-bottom: 6px;
+            font-size: 9.5pt;
+            color: #334155;
+        }
+
+        .step-list li strong {
+            color: #0f172a;
+        }
+
+        .callout {
+            background: #f0fdf4;
+            border-left: 4px solid #16a34a;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 9.5pt;
+            color: #166534;
+            margin-bottom: 12px;
+        }
+
+        .callout-blue {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 9.5pt;
+            color: #1e40af;
+            margin-bottom: 12px;
+        }
+
+        .callout-amber {
+            background: #fffbeb;
+            border-left: 4px solid #d97706;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 9.5pt;
+            color: #92400e;
+            margin-bottom: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 9pt;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 700;
+            text-align: left;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+        }
+
+        td {
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .workflow-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 14px 0;
+        }
+
+        .flow-step {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-left: 5px solid #2563eb;
+            padding: 10px 14px;
+            border-radius: 6px;
+        }
+
+        .flow-step-num {
+            font-size: 8pt;
+            font-weight: 800;
+            color: #2563eb;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .flow-step-title {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 2px 0 4px 0;
+        }
+
+        .flow-step-desc {
+            font-size: 9pt;
+            color: #475569;
+            margin: 0;
+        }
+
+        .footer {
+            margin-top: 30px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+            font-size: 8pt;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- COVER PAGE -->
+    <div class="cover-page">
+        <div class="cover-header">
+            <span class="badge-cover">Official Presentation & Feature Handbook</span>
+            <div class="cover-title">PANDUAN LENGKAP & TUTORIAL FITUR</div>
+            <div class="cover-subtitle">Sistem Cloud Accounting SaaS Berbasis Standar PSAK / SAK EMKM Indonesia dengan Otomasi Jurnal AI & Multi-Perusahaan</div>
+        </div>
+
+        <div>
+            <div class="callout-blue" style="margin-bottom: 25px;">
+                <strong>Tujuan Dokumen:</strong> Disusun khusus sebagai panduan komprehensif presentasi, demonstrasi sistem, dan jawaban teknis/akuntansi bagi penguji, manajemen eksekutif, dan klien bisnis.
+            </div>
+
+            <div class="cover-meta">
+                <div class="meta-item">
+                    <div class="meta-label">Versi Sistem</div>
+                    <div class="meta-value">v2.4 Enterprise Cloud SaaS</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Standar Akuntansi</div>
+                    <div class="meta-value">PSAK & SAK EMKM (120 COA)</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Teknologi Inti</div>
+                    <div class="meta-value">Laravel 12, Alpine.js, Tailwind, SQLite/MySQL</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Dokumentasi Tanggal</div>
+                    <div class="meta-value">Maret 2026</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 1: RINGKASAN EKSEKUTIF & ALUR DEMO -->
+    <div>
+        <h1><span class="icon">🧭</span> 1. Alur Strategis Demonstrasi Presentasi</h1>
+        <p>Gunakan urutan demonstrasi 7-langkah berikut untuk memberikan impresi terbaik (<em>WOW Effect</em>) kepada audiens selama 10–15 menit presentasi:</p>
+
+        <div class="workflow-box">
+            <div class="flow-step">
+                <div class="flow-step-num">Langkah 1 &bull; 2 Menit</div>
+                <div class="flow-step-title">Multi-Company Switcher & Isolasi Data</div>
+                <p class="flow-step-desc">Tunjukkan kemampuan berpindah cabang/entitas (PT TALENTSMART, Dapur Gemoy, Kedai Nasi Padang) secara instan dari navbar tanpa re-login. Buktikan database & akun masing-masing entitas terpisah aman.</p>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-num">Langkah 2 &bull; 2 Menit</div>
+                <div class="flow-step-title">Dashboard Eksekutif Real-Time & REST API</div>
+                <p class="flow-step-desc">Tampilkan widget KPI Saldo Kas & Bank, Laba Bersih, Pendapatan, dan Grafik Beban Operasional. Jelaskan ketersediaan endpoint REST API untuk integrasi aplikasi mobile / POS kasir.</p>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-num">Langkah 3 &bull; 1 Menit</div>
+                <div class="flow-step-title">Master Data 120 Bagan Akun (COA) Standar PSAK</div>
+                <p class="flow-step-desc">Tunjukkan hierarki 120 akun akuntansi seragam dan fitur <strong>Balance Lock</strong> (akun yang ada saldonya terkunci otomatis dari penghapusan demi keamanan audit).</p>
+            </div>
+
+            <div class="flow-step" style="border-left-color: #16a34a; background: #f0fdf4;">
+                <div class="flow-step-num" style="color: #16a34a;">Langkah 4 &bull; 3 Menit &bull; HIGHLIGHT UTAMA (WOW FACTOR)</div>
+                <div class="flow-step-title" style="color: #166534;">Transaksi Cerdas dengan AI Natural Language Parser</div>
+                <p class="flow-step-desc">Ketik kalimat bahasa manusia biasa: <em>"Beli laptop kantor 12 juta bayar via Transfer BCA"</em>. Klik <strong>AI Parse</strong> dan tunjukkan bagaimana sistem langsung mengisi baris Debit & Kredit seimbang otomatis.</p>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-num">Langkah 5 &bull; 2 Menit</div>
+                <div class="flow-step-title">Aset Tetap & Depresiasi Otomatis</div>
+                <p class="flow-step-desc">Tunjukkan kartu aset (Gedung/Kendaraan/Mesin) dan klik tombol eksekusi <strong>Depresiasi Bulanan</strong>. Jurnal penyusutan langsung terposting otomatis ke Buku Besar.</p>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-num">Langkah 6 &bull; 3 Menit</div>
+                <div class="flow-step-title">Laporan Keuangan Standar PSAK & Ekspor Bersih</div>
+                <p class="flow-step-desc">Buka <strong>Laporan Laba Rugi</strong> dengan struktur resmi Indonesia. Klik tombol <strong>Excel</strong> (terunduh spreadsheet bersih tanpa tag kode) dan tombol <strong>Cetak/PDF</strong> (tampilan resmi siap tanda tangan).</p>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-num">Langkah 7 &bull; 1 Menit</div>
+                <div class="flow-step-title">Tutup Buku Periode & Portal Super Admin SaaS</div>
+                <p class="flow-step-desc">Simulasikan tutup buku bulanan yang otomatis memindahkan Laba ke <em>Laba Ditahan</em> serta mengunci periode lama dari manipulasi (*anti-fraud*).</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE BREAK: DETAIL 10 MODUL -->
+    <div class="page-break"></div>
+
+    <div>
+        <h1><span class="icon">🏛️</span> 2. Panduan & Tutorial 10 Modul Inti</h1>
+
+        <!-- MODUL 1 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">1. Multi-Company Management (Multi-Tenant)</div>
+                <span class="badge">Multi-Tenancy</span>
+            </div>
+            <p><strong>Fungsi:</strong> Mengelola multi entitas usaha/cabang dalam satu platform cloud tanpa saling tumpang tindih data.</p>
+            <div class="step-list">
+                <li><strong>Cara Mengganti Perusahaan:</strong> Klik dropdown nama perusahaan di navbar atas &rarr; pilih entitas yang diinginkan &rarr; seluruh dashboard, jurnal, dan laporan langsung berubah sesuai data perusahaan tersebut.</li>
+                <li><strong>Cara Menambah Entitas Baru:</strong> Buka menu <em>Perusahaan</em> &rarr; klik <em>Tambah Perusahaan</em> &rarr; isi Nama, Alamat, NPWP &rarr; Simpan. Sistem otomatis membuatkan 120 Bagan Akun (COA) siap pakai.</li>
+            </div>
+        </div>
+
+        <!-- MODUL 2 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">2. Dashboard Finansial & REST API Mobile</div>
+                <span class="badge">Executive Analytics</span>
+            </div>
+            <p><strong>Fungsi:</strong> Memberikan ringkasan eksekutif secara visual tentang kondisi likuiditas dan kinerja profitabilitas bisnis.</p>
+            <div class="step-list">
+                <li><strong>Card KPI:</strong> Total Kas & Bank, Pendapatan Bulan Ini, Total Beban, dan Laba Bersih Berjalan.</li>
+                <li><strong>Grafik Tren:</strong> Diagram pengeluaran per kategori beban dan arus kas 6 bulan terakhir.</li>
+                <li><strong>Kesiapan Mobile:</strong> Dilengkapi endpoint JSON <code>/api/v1/dashboard/summary</code> yang diamankan token Bearer API untuk integrasi ke aplikasi Flutter, Android, maupun sistem kasir (POS).</li>
+            </div>
+        </div>
+
+        <!-- MODUL 3 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">3. Master Data 120 Bagan Akun (COA) Standar PSAK</div>
+                <span class="badge">Standard Compliance</span>
+            </div>
+            <p><strong>Fungsi:</strong> Fondasi pencatatan double-entry lengkap sebanyak 120 akun standar PSAK Indonesia (Kode 1000 hingga 9000).</p>
+            <div class="step-list">
+                <li><strong>Pencarian Cepat:</strong> Masuk ke menu <em>Bagan Akun (COA)</em> &rarr; ketik kode akun atau nama akun pada kolom pencarian.</li>
+                <li><strong>Fitur Keamanan (Anti-Fraud Lock):</strong> Akun yang sudah memiliki histori transaksi terlindungi dari tombol hapus demi integritas pembukuan dan kepatuhan auditor.</li>
+                <li><strong>Kustomisasi Sub-Akun:</strong> Pengguna dapat menambahkan akun kas atau bank spesifik (misal: <em>1102.01 Bank BCA Bisnis</em>) melalui tombol <em>Tambah Akun</em>.</li>
+            </div>
+        </div>
+
+        <!-- MODUL 4 -->
+        <div class="card" style="border: 1.5px solid #22c55e;">
+            <div class="card-header">
+                <div class="card-title" style="color: #15803d;">4. Transaksi & AI Natural Language Smart Journal</div>
+                <span class="badge" style="background: #dcfce7; color: #166534; border-color: #86efac;">AI-Powered</span>
+            </div>
+            <p><strong>Fungsi:</strong> Menghilangkan kesulitan input jurnal manual bagi staf non-akuntan menggunakan kecerdasan buatan.</p>
+            <div class="step-list">
+                <li><strong>Tutorial Penggunaan AI:</strong>
+                    <ol style="margin-top: 4px; padding-left: 18px;">
+                        <li>Buka menu <em>Transaksi</em> &rarr; klik <em>Tambah Transaksi</em>.</li>
+                        <li>Di kotak input AI, ketik kalimat transaksi natural (contoh: <em>"Bayar sewa kantor 15 juta tunai"</em> atau <em>"Terima pelunasan piutang PT ABC 25 juta via Mandiri"</em>).</li>
+                        <li>Klik tombol <strong>AI Parse</strong>.</li>
+                        <li>Sistem otomatis menentukan baris Debit dan Kredit yang sesuai beserta nominalnya.</li>
+                        <li>Cek status validasi <em>"Balance (Selisih: Rp 0)"</em> &rarr; Klik <em>Simpan Transaksi</em>.</li>
+                    </ol>
+                </li>
+            </div>
+        </div>
+
+        <!-- MODUL 5 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">5. Kontak Bisnis (Pelanggan & Vendor)</div>
+                <span class="badge">AR / AP Sub-ledger</span>
+            </div>
+            <p><strong>Fungsi:</strong> Buku pembantu pihak ketiga untuk memantau umur piutang pelanggan dan jadwal pembayaran tagihan supplier.</p>
+            <div class="step-list">
+                <li>Buka menu <em>Kontak</em> &rarr; pilih tab <em>Pelanggan</em> atau <em>Vendor</em>.</li>
+                <li>Klik <em>Tambah Kontak</em>: Masukkan Nama, NPWP/NIK, Nomor Telepon, Alamat, dan Batas Plafon Kredit.</li>
+                <li>Kontak ini otomatis tertaut di modul faktur penjualan dan pembelian untuk pembuatan kartu piutang/hutang.</li>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE BREAK: MODUL LANJUTAN -->
+    <div class="page-break"></div>
+
+    <div>
+        <!-- MODUL 6 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">6. Metode Pembayaran & Pajak Resmi DJP</div>
+                <span class="badge">Tax & Gateway Mapping</span>
+            </div>
+            <p><strong>Fungsi:</strong> Mengotomasi jurnal pemotongan pajak dan pencatatan kas/bank saat transaksi berlangsung.</p>
+            <div class="step-list">
+                <li><strong>Pajak Otomatis:</strong> Mendukung tarif PPN 11% (Pajak Masukan & Pajak Keluaran) serta PPh 23 (Potongan Jasa 2%).</li>
+                <li><strong>Mapping Akun:</strong> Setiap metode bayar (QRIS, Transfer Mandiri, EDC BCA, Petty Cash) langsung dipetakan ke kode akun buku besar terkait sehingga tidak ada selisih kas.</li>
+            </div>
+        </div>
+
+        <!-- MODUL 7 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">7. Aset Tetap & Depresiasi Otomatis</div>
+                <span class="badge">Fixed Assets Management</span>
+            </div>
+            <p><strong>Fungsi:</strong> Menghitung dan menjurnal penyusutan aset tetap secara otomatis dengan Metode Garis Lurus (Straight-Line).</p>
+            <div class="step-list">
+                <li><strong>Pendaftaran Aset:</strong> Masuk menu <em>Aset Tetap</em> &rarr; <em>Tambah Aset</em> &rarr; Isi Nama Aset, Tanggal Beli, Harga Perolehan, Nilai Residu, dan Masa Manfaat (tahun).</li>
+                <li><strong>Jurnal Depresiasi Bulanan:</strong> Klik tombol <em>Jalankan Depresiasi</em>. Sistem otomatis membuat jurnal Debit: Beban Penyusutan dan Kredit: Akumulasi Penyusutan tanpa perlu hitung kalkulator manual.</li>
+            </div>
+        </div>
+
+        <!-- MODUL 8 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">8. Tutup Buku Periode (Period Closing)</div>
+                <span class="badge">Anti-Fraud & Governance</span>
+            </div>
+            <p><strong>Fungsi:</strong> Finalisasi buku besar bulanan/tahunan dan penguncian transaksi historis dari perubahan ilegal.</p>
+            <div class="step-list">
+                <li><strong>Cara Penggunaan:</strong> Buka menu <em>Tutup Buku</em> &rarr; pilih Bulan dan Tahun &rarr; klik <em>Proses Tutup Buku</em>.</li>
+                <li><strong>Mekanisme Otomatis:</strong> Saldo akun nominal (Pendapatan & Beban) ditutup menjadi 0, laba bersih dipindahkan ke <em>Laba Ditahan</em>, dan seluruh transaksi pada periode tersebut di-lock permanen.</li>
+            </div>
+        </div>
+
+        <!-- MODUL 9 -->
+        <div class="card" style="border: 1.5px solid #2563eb;">
+            <div class="card-header">
+                <div class="card-title" style="color: #1e40af;">9. Paket Laporan Keuangan Standar PSAK / SAK EMKM</div>
+                <span class="badge" style="background: #eff6ff; color: #1d4ed8; border-color: #93c5fd;">Financial Reports Suite</span>
+            </div>
+            <p><strong>Fungsi:</strong> Menyajikan informasi keuangan akurat untuk keperluan pelaporan pajak, perbankan, maupun rapat investor.</p>
+            <div class="step-list">
+                <li><strong>Laba Rugi (Profit & Loss):</strong> Disusun bertingkat:
+                    <br>&bull; Pendapatan Usaha &minus; HPP = <strong>Laba Kotor</strong>
+                    <br>&bull; Laba Kotor &minus; Beban Operasional = <strong>Laba Operasional</strong>
+                    <br>&bull; Disertai Pos Non-Operasional hingga <strong>Laba Bersih Setelah Pajak</strong> (dengan double underline standar akuntansi).</li>
+                <li><strong>Neraca (Balance Sheet):</strong> Pilihan tampilan Skontro (T-Account sejajar) atau Stafel (Vertikal), membuktikan <em>Aset = Kewajiban + Ekuitas</em>.</li>
+                <li><strong>Buku Besar & Neraca Saldo:</strong> Jejak mutasi kronologis per akun untuk pembuktian audit.</li>
+                <li><strong>Fitur Ekspor Unggulan:</strong>
+                    <br>&bull; <strong>Excel (.xls):</strong> Ekspor native rapi langsung berupa tabel bersih, tanpa kebocoran script/tag kode.
+                    <br>&bull; <strong>Cetak / PDF:</strong> Format A4 siap cetak dengan header resmi perusahaan, penanggalan, dan kolom tanda tangan pimpinan.</li>
+            </div>
+        </div>
+
+        <!-- MODUL 10 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">10. Hak Akses Berjenjang (RBAC) & Portal Super Admin SaaS</div>
+                <span class="badge">Enterprise Security</span>
+            </div>
+            <p><strong>Fungsi:</strong> Tata kelola wewenang pengguna dan sistem penagihan langganan multi-tenant.</p>
+            <div class="step-list">
+                <li><strong>4 Peran Pengguna:</strong>
+                    <br>&bull; <em>Owner / Admin:</em> Akses penuh seluruh modul dan konfigurasi.
+                    <br>&bull; <em>Akuntan:</em> Akses jurnal, posting penyesuaian, dan pelaporan keuangan.
+                    <br>&bull; <em>Kasir:</em> Khusus input transaksi harian tanpa melihat laporan laba rugi global.
+                    <br>&bull; <em>Auditor:</em> Hak akses baca (read-only) untuk pemeriksaan pembukuan.</li>
+                <li><strong>Portal Super Admin:</strong> Halaman khusus di <code>/superadmin/dashboard</code> untuk mengelola paket langganan penyewa, verifikasi bukti transfer pembayaran SaaS, dan monitoring kuota tenant.</li>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE BREAK: TANYA JAWAB PRESENTASI -->
+    <div class="page-break"></div>
+
+    <div>
+        <h1><span class="icon">💡</span> 3. Contekkan Tanya Jawab Presentasi (Q&A Cheat Sheet)</h1>
+        <p>Berikut adalah daftar pertanyaan tersering yang diajukan oleh dosen penguji, manajemen, atau calon klien beserta strategi jawaban terbaik:</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 35%;">Pertanyaan Penguji / Klien</th>
+                    <th style="width: 65%;">Kunci Jawaban Strategis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>"Apakah susunan laporan laba rugi sudah sesuai standar akuntansi Indonesia?"</strong></td>
+                    <td><em>"Sudah sepenuhnya sesuai PSAK dan SAK EMKM. Sistem kami secara hierarkis memisahkan Pendapatan Usaha, HPP untuk menghitung Laba Kotor, kemudian dikurangi Beban Operasional untuk menghasilkan Laba Operasional, hingga memperhitungkan Pendapatan/Beban Non-Operasional dan Estimasi Pajak Penghasilan dengan double-underline akuntansi."</em></td>
+                </tr>
+                <tr>
+                    <td><strong>"Bagaimana jika kasir atau staf salah memasukkan jurnal yang tidak seimbang (debit != kredit)?"</strong></td>
+                    <td><em>"Sistem dilengkapi validasi matematis double-entry real-time. Tombol simpan transaksi otomatis dinonaktifkan (disabled) dan muncul indikator merah jika total Debit dan Kredit belum tepat sama (selisih nol)."</em></td>
+                </tr>
+                <tr>
+                    <td><strong>"Bagaimana mencegah manipulasi laporan keuangan periode lalu yang sudah diaudit?"</strong></td>
+                    <td><em>"Kami memiliki fitur Tutup Buku Periode. Setelah periode dinyatakan ditutup, status buku besar dikunci. Transaksi pada periode tersebut tidak dapat diedit atau dihapus. Penyesuaian hanya dapat dilakukan melalui modul Jurnal Penyesuaian / Koreksi di periode berjalan."</em></td>
+                </tr>
+                <tr>
+                    <td><strong>"Apakah data antara cabang atau perusahaan yang berbeda bisa bocor atau tertukar?"</strong></td>
+                    <td><em>"Sama sekali tidak. Aplikasi menerapkan arsitektur Multi-Tenant dengan Company Scope yang terisolasi di tingkat query database. Pengguna di Cabang A secara teknis diisolasi dari membaca atau memodifikasi data Cabang B."</em></td>
+                </tr>
+                <tr>
+                    <td><strong>"Bagaimana sistem menangani depresiasi aset tetap?"</strong></td>
+                    <td><em>"Sistem menggunakan Metode Garis Lurus (Straight-Line) otomatis. Dari harga perolehan, nilai sisa, dan masa manfaat, sistem menyusun tabel amortisasi dan membuat jurnal penyusutan bulanan hanya dengan sekali klik."</em></td>
+                </tr>
+                <tr>
+                    <td><strong>"Bisa diekspor ke Excel untuk diolah lebih lanjut oleh tim konsultan pajak?"</strong></td>
+                    <td><em>"Tentu saja. Laporan keuangan kami menyediakan ekspor Excel native (.xls) dengan format cell angka bersih dan struktur tabel siap pakai, serta fitur Cetak PDF A4 siap tanda tangan."</em></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="callout" style="margin-top: 25px;">
+            <strong>Tips Presentasi Sukses:</strong> Awali demo dengan menunjukkan kemudahan AI Parser untuk menarik antusiasme audiens, lalu akhiri dengan Laporan Keuangan resmi untuk membuktikan ketepatan dan kepatuhan akuntansinya.
+        </div>
+
+        <div class="footer">
+            <span>Sistem Informasi Akuntansi Cloud SaaS &bull; Dokumen Rahasia Perusahaan</span>
+            <span>Dicetak Otomatis dari Sistem</span>
+        </div>
+    </div>
+
+</body>
+</html>
