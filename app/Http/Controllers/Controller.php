@@ -11,8 +11,24 @@ abstract class Controller
      */
     protected function getActiveCompany(): Company
     {
-        $activeCompanyId = session('active_company_id') ?? auth()->user()?->default_company_id ?? 1;
+        $user = auth()->user();
+        $activeCompanyId = session('active_company_id') ?? $user?->default_company_id;
         
+        if ($user && !$user->isSuperAdmin()) {
+            $company = $user->companies()->where('companies.id', $activeCompanyId)->first()
+                ?? Company::where('id', $activeCompanyId)->where('owner_id', $user->id)->first();
+            
+            if (!$company) {
+                $company = $user->companies()->first() ?? Company::where('owner_id', $user->id)->first();
+                if ($company) {
+                    session(['active_company_id' => $company->id]);
+                }
+            }
+            if ($company) {
+                return $company->load('settings');
+            }
+        }
+
         return Company::with('settings')->find($activeCompanyId) 
             ?? Company::first() 
             ?? Company::create([

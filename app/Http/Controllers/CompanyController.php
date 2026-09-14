@@ -19,13 +19,28 @@ class CompanyController extends Controller
     ) {}
 
     /**
-     * Tampilkan daftar seluruh entitas perusahaan
+     * Tampilkan daftar seluruh entitas perusahaan milik pengguna
      */
     public function index(Request $request)
     {
-        $companies = Company::withCount(['accounts', 'transactions'])->get();
-        $activeCompanyId = session('active_company_id') ?? auth()->user()?->default_company_id ?? 1;
-        $company = Company::find($activeCompanyId) ?? Company::first();
+        $user = auth()->user();
+
+        if ($user && $user->isSuperAdmin()) {
+            $companies = Company::withCount(['accounts', 'transactions'])->get();
+        } elseif ($user) {
+            $companies = $user->companies()->withCount(['accounts', 'transactions'])->get();
+            if ($companies->isEmpty()) {
+                $companies = Company::where('owner_id', $user->id)
+                    ->orWhere('id', $user->default_company_id)
+                    ->withCount(['accounts', 'transactions'])
+                    ->get();
+            }
+        } else {
+            $companies = Company::withCount(['accounts', 'transactions'])->get();
+        }
+
+        $activeCompanyId = session('active_company_id') ?? $user?->default_company_id ?? $companies->first()?->id ?? 1;
+        $company = $companies->firstWhere('id', $activeCompanyId) ?? $companies->first() ?? Company::first();
 
         return view('company.index', compact('companies', 'company', 'activeCompanyId'));
     }
@@ -64,14 +79,22 @@ class CompanyController extends Controller
      */
     public function switch(int $id)
     {
+        $user = auth()->user();
+        if ($user && !$user->isSuperAdmin()) {
+            $hasAccess = $user->companies()->where('companies.id', $id)->exists()
+                || Company::where('id', $id)->where('owner_id', $user->id)->exists();
+            if (!$hasAccess) {
+                return redirect()->route('company.switch')->with('error', 'Akses ditolak: Anda tidak memiliki akses ke entitas perusahaan ini.');
+            }
+        }
+
         $targetCompany = Company::findOrFail($id);
         
         session(['active_company_id' => $targetCompany->id]);
 
-        $currentUser = auth()->user();
-        if ($currentUser) {
-            $currentUser->default_company_id = $targetCompany->id;
-            $currentUser->save();
+        if ($user) {
+            $user->default_company_id = $targetCompany->id;
+            $user->save();
         }
 
         return redirect()->route('dashboard')->with('success', "Berhasil beralih ke pembukuan: {$targetCompany->name}");
@@ -82,6 +105,15 @@ class CompanyController extends Controller
      */
     public function update(Request $request, int $id)
     {
+        $user = auth()->user();
+        if ($user && !$user->isSuperAdmin()) {
+            $hasAccess = $user->companies()->where('companies.id', $id)->exists()
+                || Company::where('id', $id)->where('owner_id', $user->id)->exists();
+            if (!$hasAccess) {
+                return back()->with('error', 'Akses ditolak: Anda tidak berwenang mengubah informasi perusahaan ini.');
+            }
+        }
+
         $company = Company::findOrFail($id);
 
         $validated = $request->validate([
@@ -103,6 +135,15 @@ class CompanyController extends Controller
      */
     public function destroy(int $id)
     {
+        $user = auth()->user();
+        if ($user && !$user->isSuperAdmin()) {
+            $hasAccess = $user->companies()->where('companies.id', $id)->exists()
+                || Company::where('id', $id)->where('owner_id', $user->id)->exists();
+            if (!$hasAccess) {
+                return back()->with('error', 'Akses ditolak: Anda tidak berwenang menghapus perusahaan ini.');
+            }
+        }
+
         $company = Company::findOrFail($id);
 
         if (Company::count() <= 1) {
@@ -128,7 +169,7 @@ class CompanyController extends Controller
         });
 
         if (session('active_company_id') == $id) {
-            $fallback = Company::first();
+            $fallback = $user ? $user->companies()->first() : Company::first();
             session(['active_company_id' => $fallback?->id]);
         }
 
