@@ -701,8 +701,12 @@
                             <div x-show="showOptional"
                                 class="mt-3 grid grid-cols-2 gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
                                 <div>
-                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tag Proyek /
-                                        Cabang</label>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-[11px] font-semibold text-slate-600">Tag Proyek / Cabang</label>
+                                        <a href="{{ route('master.tags') }}" target="_blank" class="text-[10px] text-blue-600 hover:underline font-semibold flex items-center">
+                                            <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola Tag
+                                        </a>
+                                    </div>
                                     <select name="tag_id"
                                         class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs">
                                         <option value="">Tanpa Tag</option>

@@ -388,4 +388,67 @@ class MasterDataController extends Controller
 
         return redirect()->route('master.taxes')->with('success', "Pajak '{$name}' berhasil dihapus.");
     }
+
+    public function tags(Request $request)
+    {
+        $company = $this->getActiveCompany();
+
+        $query = Tag::where('company_id', $company->id);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $tags = $query->orderBy('name')->get();
+
+        return view('master.tags', compact('company', 'tags'));
+    }
+
+    public function storeTag(Request $request)
+    {
+        $company = $this->getActiveCompany();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'color' => 'nullable|string|max:20',
+        ]);
+
+        Tag::create([
+            'company_id' => $company->id,
+            'name' => $validated['name'],
+            'color' => $validated['color'] ?: '#3b82f6',
+        ]);
+
+        return redirect()->route('master.tags')->with('success', "Tag '{$validated['name']}' berhasil ditambahkan.");
+    }
+
+    public function updateTag(Request $request, int $id)
+    {
+        $company = $this->getActiveCompany();
+        $tag = Tag::where('company_id', $company->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'color' => 'nullable|string|max:20',
+        ]);
+
+        $tag->update([
+            'name' => $validated['name'],
+            'color' => $validated['color'] ?: '#3b82f6',
+        ]);
+
+        return redirect()->route('master.tags')->with('success', "Tag '{$tag->name}' berhasil diperbarui.");
+    }
+
+    public function destroyTag(int $id)
+    {
+        $company = $this->getActiveCompany();
+        $tag = Tag::where('company_id', $company->id)->findOrFail($id);
+        $name = $tag->name;
+        $tag->delete();
+
+        return redirect()->route('master.tags')->with('success', "Tag '{$name}' berhasil dihapus.");
+    }
 }
+

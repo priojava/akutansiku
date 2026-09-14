@@ -403,6 +403,10 @@
                                     <span>Master Pajak</span>
                                     <span class="sub-badge text-[9px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200">DJP</span>
                                 </a>
+                                <a href="{{ route('master.tags') }}" class="nav-sub-link {{ request()->routeIs('master.tags') ? 'nav-sub-link-active' : '' }}">
+                                    <span>Tag / Proyek</span>
+                                    <span class="sub-badge text-[9px] px-1.5 py-0.2 rounded bg-blue-50 text-blue-600 border border-blue-200">Baru</span>
+                                </a>
                             </div>
                         </div>
 

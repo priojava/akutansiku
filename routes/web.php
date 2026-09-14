@@ -55,6 +55,10 @@ Route::prefix('master')->name('master.')->group(function () {
     Route::post('/taxes', [MasterDataController::class, 'storeTax'])->name('taxes.store');
     Route::put('/taxes/{id}', [MasterDataController::class, 'updateTax'])->name('taxes.update');
     Route::delete('/taxes/{id}', [MasterDataController::class, 'destroyTax'])->name('taxes.destroy');
+    Route::get('/tags', [MasterDataController::class, 'tags'])->name('tags');
+    Route::post('/tags', [MasterDataController::class, 'storeTag'])->name('tags.store');
+    Route::put('/tags/{id}', [MasterDataController::class, 'updateTag'])->name('tags.update');
+    Route::delete('/tags/{id}', [MasterDataController::class, 'destroyTag'])->name('tags.destroy');
 });
 
 // Alias for taxes.index

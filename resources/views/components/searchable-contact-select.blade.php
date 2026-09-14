@@ -143,9 +143,29 @@
                 </div>
             </template>
 
-            <div x-show="filteredOptions.length === 0" class="p-4 text-center text-xs text-slate-400">
-                <i class="fa-solid fa-circle-exclamation mr-1 text-slate-300"></i> Tidak ada kontak yang cocok.
+            <div x-show="options.length > 0 && filteredOptions.length === 0" class="p-4 text-center text-xs text-slate-400">
+                <i class="fa-solid fa-circle-exclamation mr-1 text-slate-300"></i> Tidak ada kontak yang cocok dengan kata kunci.
             </div>
+
+            <div x-show="options.length === 0" class="p-4 text-center text-xs text-slate-400">
+                <i class="fa-solid fa-user-plus text-slate-300 text-base mb-1 block"></i>
+                <div class="font-medium text-slate-600">Belum ada data kontak di perusahaan ini.</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">Kontak tersimpan per perusahaan (multi-tenant).</div>
+                <div class="mt-2.5">
+                    <a href="{{ route('master.contacts') }}" target="_blank" 
+                       class="inline-flex items-center text-[11px] font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1 rounded-md border border-blue-200 transition">
+                        <i class="fa-solid fa-plus mr-1 text-[9px]"></i> + Buat Pelanggan / Vendor
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dropdown Footer -->
+        <div class="p-2 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between text-[11px]">
+            <span class="text-slate-400">Total: <strong class="text-slate-600" x-text="options.length"></strong> kontak</span>
+            <a href="{{ route('master.contacts') }}" target="_blank" class="font-semibold text-blue-600 hover:underline flex items-center">
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] mr-1"></i> Kelola Kontak
+            </a>
         </div>
     </div>
 </div>
