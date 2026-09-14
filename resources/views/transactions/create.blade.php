@@ -798,9 +798,23 @@
             <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative"
                 @click.away="aiModalOpen = false">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div class="flex items-center space-x-2 text-slate-800 font-bold text-base">
-                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
-                        <span>AI Assistant Penjurnalan</span>
+                    <div class="flex items-center space-x-2">
+                        <div class="flex items-center space-x-2 text-slate-800 font-bold text-base">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+                            <span>AI Assistant Penjurnalan</span>
+                        </div>
+                        @php
+                            $hasGemini = !empty($company->settings?->gemini_api_key) || !empty(config('services.gemini.api_key'));
+                        @endphp
+                        @if($hasGemini)
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                <i class="fa-brands fa-google mr-1 text-blue-600"></i> Google Gemini
+                            </span>
+                        @else
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                <i class="fa-solid fa-bolt mr-1 text-amber-500"></i> Pintar Lokal
+                            </span>
+                        @endif
                     </div>
                     <button @click="aiModalOpen = false" class="text-slate-400 hover:text-slate-600">
                         <i class="fa-solid fa-xmark text-lg"></i>
@@ -808,10 +822,11 @@
                 </div>
 
                 <div class="mt-4 space-y-4">
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Ketik transaksi bisnis Anda dalam bahasa bebas, AI akan otomatis memilih akun Debit, Kredit, jenis
-                        transaksi, dan nominalnya.
-                    </p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Ketik transaksi bisnis Anda dalam bahasa bebas, AI akan otomatis memilih akun Debit, Kredit, jenis transaksi, dan nominalnya.
+                        </p>
+                    </div>
 
                     <div class="space-y-2">
                         <label class="block text-xs font-semibold text-slate-700">Contoh Kalimat Transaksi:</label>

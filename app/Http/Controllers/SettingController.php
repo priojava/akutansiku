@@ -33,9 +33,71 @@ class SettingController extends Controller
             'decimal_places' => intval($request->input('decimal_places', 0)),
             'cache_reports' => $request->has('cache_reports'),
             'cache_ar_ap' => $request->has('cache_ar_ap'),
+            'gemini_api_key' => $request->filled('gemini_api_key') ? trim($request->input('gemini_api_key')) : null,
         ]);
 
-        return back()->with('success', 'Pengaturan Utama berhasil disimpan.');
+        return back()->with('success', 'Pengaturan Utama dan integrasi Google AI berhasil disimpan.');
+    }
+
+    /**
+     * Uji koneksi langsung ke Google Gemini API
+     */
+    public function testGeminiAi(Request $request)
+    {
+        $company = $this->getActiveCompany();
+        $apiKey = trim($request->input('gemini_api_key', ''));
+
+        if (empty($apiKey)) {
+            $settings = $company->settings;
+            $apiKey = trim($settings?->gemini_api_key ?? '') ?: config('services.gemini.api_key') ?: env('GEMINI_API_KEY');
+        }
+
+        if (empty($apiKey)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'API Key Gemini belum diisi. Silakan masukkan API Key Google AI Studio Anda terlebih dahulu.'
+            ], 422);
+        }
+
+        try {
+            $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" . config('services.gemini.model', 'gemini-1.5-flash') . ":generateContent?key={$apiKey}";
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->post($endpoint, [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => 'Balas hanya dengan format JSON: {"status": "ok", "message": "Koneksi Google Gemini 1.5 Flash Berhasil!"}']
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.1,
+                    'responseMimeType' => 'application/json',
+                ]
+            ]);
+
+            if ($response->successful()) {
+                $body = $response->json();
+                $text = $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                $parsed = json_decode(trim(preg_replace('/^```(?:json)?|```$/m', '', $text)), true);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $parsed['message'] ?? 'Koneksi ke Google Gemini AI Berhasil!',
+                    'model' => config('services.gemini.model', 'gemini-1.5-flash'),
+                ]);
+            }
+
+            $errorMsg = $response->json('error.message') ?? 'Error HTTP ' . $response->status();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal terhubung: ' . $errorMsg
+            ], 400);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Koneksi error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function accountMappings()

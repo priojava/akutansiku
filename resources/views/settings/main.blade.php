@@ -87,9 +87,137 @@
 
             </div>
 
+            <!-- INTEGRASI GOOGLE AI STUDIO (GEMINI 1.5 FLASH) -->
+            <div class="p-5 border-t border-b border-slate-100 bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-purple-50/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+                            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                <span>Integrasi Google AI Studio (Gemini)</span>
+                                @if(!empty($settings->gemini_api_key) || !empty(config('services.gemini.api_key')))
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse"></span>
+                                        Gemini Aktif
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                        Mode Lokal (Regex Heuristik)
+                                    </span>
+                                @endif
+                            </h3>
+                            <p class="text-[11px] text-slate-500">Membantu penjurnalan otomatis transaksi dari kalimat bahasa bebas</p>
+                        </div>
+                    </div>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" 
+                       class="text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-white hover:bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 shadow-2xs transition flex items-center gap-1.5">
+                        <i class="fa-brands fa-google text-blue-600"></i>
+                        <span>Dapatkan API Key Gratis &rarr;</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-4" x-data="{
+                apiKey: '{{ $settings->gemini_api_key ?? '' }}',
+                showKey: false,
+                testLoading: false,
+                testStatus: null,
+                testMessage: '',
+                testModel: '',
+                runTest() {
+                    this.testLoading = true;
+                    this.testStatus = null;
+                    this.testMessage = '';
+                    fetch('{{ route('settings.main.test_gemini') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ gemini_api_key: this.apiKey })
+                    })
+                    .then(res => res.json().then(data => ({ status: res.status, ok: res.ok, data })))
+                    .then(res => {
+                        this.testLoading = false;
+                        if (res.ok && res.data.success) {
+                            this.testStatus = 'success';
+                            this.testMessage = res.data.message;
+                            this.testModel = res.data.model || 'Gemini 1.5 Flash';
+                        } else {
+                            this.testStatus = 'error';
+                            this.testMessage = res.data.message || 'Gagal terhubung ke API Gemini.';
+                        }
+                    })
+                    .catch(err => {
+                        this.testLoading = false;
+                        this.testStatus = 'error';
+                        this.testMessage = 'Gagal menghubungi server aplikasi.';
+                    });
+                }
+            }">
+                <div>
+                    <label class="block text-xs font-bold text-slate-800 mb-1">Google AI Studio API Key</label>
+                    <p class="text-[11px] text-slate-500 mb-2">
+                        Masukkan API Key dari Google AI Studio. Jika dikosongkan, sistem akan otomatis tetap berjalan dengan <strong>Mesin Pintar Lokal</strong> bawaan tanpa error.
+                    </p>
+                    <div class="relative flex items-center">
+                        <input :type="showKey ? 'text' : 'password'" 
+                               name="gemini_api_key" 
+                               x-model="apiKey"
+                               placeholder="Contoh: AIzaSy..." 
+                               class="w-full pl-3.5 pr-24 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        
+                        <div class="absolute right-2 flex items-center space-x-1">
+                            <button type="button" @click="showKey = !showKey" 
+                                    class="p-1.5 text-slate-400 hover:text-slate-600 rounded text-xs" 
+                                    :title="showKey ? 'Sembunyikan' : 'Tampilkan'">
+                                <i :class="showKey ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+                            </button>
+                            <button type="button" @click="runTest()" :disabled="testLoading || !apiKey" 
+                                    class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-40 text-indigo-700 text-[11px] font-bold rounded border border-indigo-200 transition flex items-center gap-1">
+                                <i x-show="testLoading" class="fa-solid fa-spinner fa-spin text-[10px]"></i>
+                                <span x-text="testLoading ? 'Menguji...' : 'Uji AI'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifikasi Hasil Test Uji AI -->
+                <div x-show="testStatus === 'success'" x-cloak class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-start space-x-2">
+                    <i class="fa-solid fa-circle-check text-emerald-600 mt-0.5"></i>
+                    <div>
+                        <span class="font-bold block" x-text="testMessage"></span>
+                        <span class="text-[11px] text-emerald-700">Model: <code class="font-mono bg-emerald-100/70 px-1 py-0.5 rounded" x-text="testModel"></code> siap digunakan untuk menjurnal otomatis.</span>
+                    </div>
+                </div>
+
+                <div x-show="testStatus === 'error'" x-cloak class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start space-x-2">
+                    <i class="fa-solid fa-circle-exclamation text-rose-600 mt-0.5"></i>
+                    <div>
+                        <span class="font-bold block">Uji Koneksi Gagal</span>
+                        <span class="text-[11px] text-rose-700" x-text="testMessage"></span>
+                    </div>
+                </div>
+
+                <!-- Panduan 3 Langkah -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-[11px] text-slate-600 space-y-1.5">
+                    <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info text-blue-600"></i>
+                        <span>Cara Mendapatkan API Key Google AI Studio Gratis (1 Menit):</span>
+                    </div>
+                    <ol class="list-decimal list-inside space-y-1 pl-1 text-slate-600">
+                        <li>Buka link <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 font-semibold underline">aistudio.google.com</a> dan login dengan akun Google/Gmail Anda.</li>
+                        <li>Klik tombol <strong>"Create API key"</strong> &rarr; pilih project baru.</li>
+                        <li>Salin kunci <em>(starts with AIzaSy...)</em> dan tempel pada kolom di atas, lalu klik <strong>Simpan</strong>.</li>
+                    </ol>
+                </div>
+            </div>
+
             <div class="p-6 bg-slate-50 border-t border-slate-200">
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-6 py-2.5 rounded-lg shadow-sm transition">
-                    Simpan
+                    Simpan Pengaturan
                 </button>
             </div>
         </div>
