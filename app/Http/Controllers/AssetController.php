@@ -250,4 +250,40 @@ class AssetController extends Controller
             'Content-Disposition' => 'attachment; filename="daftar_aset_' . date('Ymd_His') . '.csv"',
         ]);
     }
+
+    public function destroy(int $id)
+    {
+        $company = $this->getActiveCompany();
+        $asset = Asset::where('company_id', $company->id)->findOrFail($id);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($company, $asset) {
+            // Hapus transaksi & jurnal perolehan aset jika ada
+            $transactions = \App\Models\Transaction::where('company_id', $company->id)
+                ->where('notes', 'like', "%({$asset->code})%")
+                ->get();
+
+            foreach ($transactions as $trx) {
+                $journalEntries = \App\Models\JournalEntry::where('transaction_id', $trx->id)->get();
+                foreach ($journalEntries as $entry) {
+                    \App\Models\JournalItem::where('journal_entry_id', $entry->id)->delete();
+                    $entry->delete();
+                }
+                $trx->delete();
+            }
+
+            // Hapus jurnal penyusutan aset jika pernah dijalankan
+            $deprEntries = \App\Models\JournalEntry::where('company_id', $company->id)
+                ->where('notes', 'like', "%Penyusutan Aset: {$asset->name}%")
+                ->get();
+            foreach ($deprEntries as $entry) {
+                \App\Models\JournalItem::where('journal_entry_id', $entry->id)->delete();
+                $entry->delete();
+            }
+
+            $asset->delete();
+        });
+
+        return back()->with('success', "Aset '{$asset->name}' ({$asset->code}) beserta catatan jurnalnya berhasil dihapus.");
+    }
 }
+

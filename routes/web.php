@@ -36,6 +36,7 @@ Route::prefix('transactions')->name('transactions.')->group(function () {
     Route::post('/store', [TransactionController::class, 'store'])->name('store');
     Route::get('/history', [TransactionController::class, 'history'])->name('history');
     Route::post('/ai-parse', [TransactionController::class, 'aiParse'])->name('ai_parse');
+    Route::delete('/{id}', [TransactionController::class, 'destroy'])->name('destroy');
 });
 
 // 3. Master Data
@@ -66,6 +67,7 @@ Route::prefix('assets')->name('assets.')->group(function () {
     Route::post('/store', [\App\Http\Controllers\AssetController::class, 'store'])->name('store');
     Route::get('/export', [\App\Http\Controllers\AssetController::class, 'exportExcel'])->name('export');
     Route::post('/toggle-depreciation/{id}', [\App\Http\Controllers\AssetController::class, 'toggleDepreciation'])->name('toggle_depreciation');
+    Route::delete('/{id}', [\App\Http\Controllers\AssetController::class, 'destroy'])->name('destroy');
 });
 
 // 3.6. Tutup Buku (Period Closing)

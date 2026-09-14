@@ -81,6 +81,7 @@
                         <th class="px-5 py-3.5 text-right">Nominal</th>
                         <th class="px-5 py-3.5">Diinput Oleh</th>
                         <th class="px-5 py-3.5 text-center">Status</th>
+                        <th class="px-5 py-3.5 text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -139,10 +140,19 @@
                                     <i class="fa-solid fa-check-double mr-1 text-emerald-500"></i> Dijurnal
                                 </span>
                             </td>
+                            <td class="px-5 py-4 text-center">
+                                <form method="POST" action="{{ route('transactions.destroy', $trx->id) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus transaksi {{ $trx->transaction_number }} ini? Catatan jurnal terkait juga akan dibatalkan.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Hapus Transaksi">
+                                        <i class="fa-solid fa-trash-can text-sm"></i>
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-10 text-slate-400">
+                            <td colspan="10" class="text-center py-10 text-slate-400">
                                 Belum ada transaksi yang tercatat.
                             </td>
                         </tr>
