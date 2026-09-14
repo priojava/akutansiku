@@ -59,45 +59,59 @@ class SettingController extends Controller
             ], 422);
         }
 
-        try {
-            $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" . config('services.gemini.model', 'gemini-1.5-flash') . ":generateContent?key={$apiKey}";
-            $response = \Illuminate\Support\Facades\Http::timeout(10)->post($endpoint, [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => 'Balas hanya dengan format JSON: {"status": "ok", "message": "Koneksi Google Gemini 1.5 Flash Berhasil!"}']
+        $modelsToTry = [
+            config('services.gemini.model', 'gemini-1.5-flash'),
+            'gemini-2.0-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro',
+        ];
+
+        $lastError = 'Gagal terhubung ke layanan Google.';
+
+        foreach ($modelsToTry as $model) {
+            try {
+                $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+                $response = \Illuminate\Support\Facades\Http::timeout(10)
+                    ->withHeaders([
+                        'x-goog-api-key' => $apiKey,
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->post($endpoint, [
+                        'contents' => [
+                            [
+                                'parts' => [
+                                    ['text' => 'Balas hanya format JSON: {"status": "ok", "message": "Koneksi Google Gemini Berhasil!"}']
+                                ]
+                            ]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.1,
+                            'responseMimeType' => 'application/json',
                         ]
-                    ]
-                ],
-                'generationConfig' => [
-                    'temperature' => 0.1,
-                    'responseMimeType' => 'application/json',
-                ]
-            ]);
+                    ]);
 
-            if ($response->successful()) {
-                $body = $response->json();
-                $text = $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                $parsed = json_decode(trim(preg_replace('/^```(?:json)?|```$/m', '', $text)), true);
+                if ($response->successful()) {
+                    $body = $response->json();
+                    $text = $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                    $parsed = json_decode(trim(preg_replace('/^```(?:json)?|```$/m', '', $text)), true);
 
-                return response()->json([
-                    'success' => true,
-                    'message' => $parsed['message'] ?? 'Koneksi ke Google Gemini AI Berhasil!',
-                    'model' => config('services.gemini.model', 'gemini-1.5-flash'),
-                ]);
+                    return response()->json([
+                        'success' => true,
+                        'message' => $parsed['message'] ?? 'Koneksi ke Google Gemini AI Berhasil!',
+                        'model' => $model,
+                    ]);
+                }
+
+                $lastError = $response->json('error.message') ?? ('Error HTTP ' . $response->status());
+            } catch (\Throwable $e) {
+                $lastError = $e->getMessage();
             }
-
-            $errorMsg = $response->json('error.message') ?? 'Error HTTP ' . $response->status();
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal terhubung: ' . $errorMsg
-            ], 400);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Koneksi error: ' . $e->getMessage()
-            ], 500);
         }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal terhubung: ' . $lastError
+        ], 400);
     }
 
     public function accountMappings()
