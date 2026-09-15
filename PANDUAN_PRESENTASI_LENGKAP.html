@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buku Panduan & Materi Presentasi - Aplikasi Akuntansi Cloud (Akutansiku)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #eff6ff;
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            --emerald: #059669;
+            --rose: #e11d48;
+            --amber: #d97706;
+            --purple: #7c3aed;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f8fafc;
+            color: var(--slate-800);
+            line-height: 1.65;
+            font-size: 14px;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 20px;
+            padding: 48px 56px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .top-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--slate-100);
+        }
+
+        .badge-pro {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .btn-print {
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+            transition: all 0.2s;
+        }
+
+        .btn-print:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        h1.doc-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--slate-900);
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .doc-subtitle {
+            font-size: 14px;
+            color: var(--slate-600);
+            margin-bottom: 32px;
+        }
+
+        .toc-box {
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 36px;
+        }
+
+        .toc-title {
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--slate-700);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+        }
+
+        .toc-link {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toc-link:hover {
+            text-decoration: underline;
+        }
+
+        h2.section-heading {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--slate-900);
+            border-bottom: 2px solid var(--slate-200);
+            padding-bottom: 8px;
+            margin-top: 40px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3.subsection-heading {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--slate-800);
+            margin-top: 22px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-bottom: 14px;
+            color: var(--slate-700);
+        }
+
+        .card-box {
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 14px;
+            padding: 20px;
+            margin: 14px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+
+        .card-accent {
+            border-left: 4px solid var(--primary);
+            background: #f8fafc;
+        }
+
+        .card-emerald {
+            border-left: 4px solid var(--emerald);
+            background: #f0fdf4;
+        }
+
+        .card-amber {
+            border-left: 4px solid var(--amber);
+            background: #fffbeb;
+        }
+
+        .card-purple {
+            border-left: 4px solid var(--purple);
+            background: #faf5ff;
+        }
+
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 22px 0;
+            font-size: 13px;
+        }
+
+        table.data-table th {
+            background: var(--slate-100);
+            color: var(--slate-800);
+            text-align: left;
+            padding: 10px 14px;
+            font-weight: 700;
+            border: 1px solid var(--slate-200);
+        }
+
+        table.data-table td {
+            padding: 10px 14px;
+            border: 1px solid var(--slate-200);
+            color: var(--slate-700);
+        }
+
+        table.data-table tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .badge-debit {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        .badge-credit {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        ul, ol {
+            margin-left: 24px;
+            margin-bottom: 16px;
+            color: var(--slate-700);
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        .qa-item {
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+        }
+
+        .qa-question {
+            font-weight: 800;
+            color: var(--slate-900);
+            font-size: 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .qa-answer {
+            color: var(--slate-700);
+            padding-left: 28px;
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+
+        .qa-icon {
+            background: #eff6ff;
+            color: var(--primary);
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 800;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .formula-box {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            text-align: center;
+            margin: 16px 0;
+            letter-spacing: 0.02em;
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+                font-size: 11pt;
+            }
+            .container {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                max-width: 100%;
+            }
+            .top-toolbar {
+                display: none;
+            }
+            .card-box, .qa-item {
+                page-break-inside: avoid;
+            }
+            h2.section-heading {
+                page-break-before: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Top Action Toolbar -->
+    <div class="top-toolbar">
+        <div class="badge-pro">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>Buku Panduan & Materi Presentasi Lengkap</span>
+        </div>
+        <button class="btn-print" onclick="window.print()">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>Cetak / Simpan ke PDF</span>
+        </button>
+    </div>
+
+    <!-- Title Header -->
+    <h1 class="doc-title">Panduan Lengkap & Bahan Presentasi Sistem Informasi Akuntansi Cloud</h1>
+    <p class="doc-subtitle">Disusun runtut, praktis, dan ramah untuk pemula yang belum memiliki latar belakang akuntansi namun harus memahami serta mempresentasikan seluruh modul aplikasi secara mendalam.</p>
+
+    <!-- Table of Contents -->
+    <div class="toc-box">
+        <div class="toc-title">
+            <i class="fa-solid fa-list-check"></i>
+            <span>Daftar Isi Pokok Bahasan</span>
+        </div>
+        <div class="toc-grid">
+            <a href="#bab1" class="toc-link"><i class="fa-solid fa-angle-right text-xs"></i> 1. Konsep Akuntansi Orang Awam</a>
+            <a href="#bab2" class="toc-link"><i class="fa-solid fa-angle-right text-xs"></i> 2. Arsitektur & Keunggulan Sistem</a>
+            <a href="#bab3" class="toc-link"><i class="fa-solid fa-angle-right text-xs"></i> 3. Bedah Menu: Dashboard</a>
+            <a href="#bab4" class="toc-link"><i class="fa-solid fa-angle-right text-xs"></i> 4. Bedah Menu: Transaksi & AI</a>
+            <a href="#bab5" class="toc-link"><i class="fa-solid fa-angle-right text-xs"></i> 5. Bedah Menu: Master & Aset Tetap</a>
+            <a href="#bab6" class="toc-link"><i class="fa-solid fa-angle-right text-xs"></i> 6. Bedah Menu: 7 Laporan Keuangan</a>
+            <a href="#bab7" class="toc-link"><i class="fa-solid fa-angle-right text-xs"></i> 7. Bedah Menu: Pengaturan & SaaS</a>
+            <a href="#bab8" class="toc-link"><i class="fa-solid fa-angle-right text-xs"></i> 8. Skenario Live Demo Presentasi</a>
+            <a href="#bab9" class="toc-link"><i class="fa-solid fa-angle-right text-xs"></i> 9. Q&A Pertanyaan Kritis Penguji</a>
+        </div>
+    </div>
+
+    <!-- BAB 1 -->
+    <h2 class="section-heading" id="bab1"><i class="fa-solid fa-book-open text-blue-600"></i> BAB 1: Konsep Dasar Akuntansi untuk Orang Awam</h2>
+    <p>Jika Anda belum pernah belajar akuntansi, pegang <strong>3 aturan emas</strong> berikut agar Anda paham apa yang sebenarnya dilakukan oleh aplikasi ini:</p>
+
+    <div class="formula-box">
+        ASET (HARTA) = KEWAJIBAN (HUTANG) + EKUITAS (MODAL)
+    </div>
+
+    <div class="card-box card-accent">
+        <h3 class="subsection-heading" style="margin-top: 0;">1. Persamaan Dasar Akuntansi</h3>
+        <p>Semua kekayaan yang dimiliki perusahaan (Aset) harus ada sumber dananya. Hanya ada dua sumber dana di dunia bisnis: dari uang pinjaman (Hutang) atau dari uang pemilik/keuntungan sendiri (Modal).</p>
+        <ul>
+            <li><strong>Aset (Harta)</strong>: Kas tunai, rekening bank, piutang tagihan ke pelanggan, persediaan barang, laptop, kendaraan kantor, bangunan.</li>
+            <li><strong>Kewajiban (Hutang)</strong>: Uang yang dipinjam dari vendor atau bank yang wajib dilunasi di masa depan.</li>
+            <li><strong>Ekuitas (Modal)</strong>: Modal awal disetor pemilik ditambah akumulasi keuntungan usaha (Laba Ditahan).</li>
+        </ul>
+    </div>
+
+    <div class="card-box card-emerald">
+        <h3 class="subsection-heading" style="margin-top: 0;">2. Logika Debit dan Kredit (Double Entry)</h3>
+        <p>Debit BUKAN selalu "uang bertambah", dan Kredit BUKAN selalu "uang berkurang". Setiap transaksi harus mencatat minimal <strong>dua akun</strong> dengan jumlah nominal Debit dan Kredit yang <strong>wajib persis seimbang (balanced)</strong>.</p>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Golongan Akun</th>
+                    <th>Jika Bertambah Dicatat Di</th>
+                    <th>Jika Berkurang Dicatat Di</th>
+                    <th>Saldo Normal Baku</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>1. Aset (Harta / Kas / Bank)</strong></td>
+                    <td><span class="badge badge-debit">DEBIT</span></td>
+                    <td><span class="badge badge-credit">KREDIT</span></td>
+                    <td>Debit</td>
+                </tr>
+                <tr>
+                    <td><strong>2. Beban / Biaya Operasional</strong></td>
+                    <td><span class="badge badge-debit">DEBIT</span></td>
+                    <td><span class="badge badge-credit">KREDIT</span></td>
+                    <td>Debit</td>
+                </tr>
+                <tr>
+                    <td><strong>3. Kewajiban (Hutang Usaha)</strong></td>
+                    <td><span class="badge badge-credit">KREDIT</span></td>
+                    <td><span class="badge badge-debit">DEBIT</span></td>
+                    <td>Kredit</td>
+                </tr>
+                <tr>
+                    <td><strong>4. Ekuitas (Modal Usaha)</strong></td>
+                    <td><span class="badge badge-credit">KREDIT</span></td>
+                    <td><span class="badge badge-debit">DEBIT</span></td>
+                    <td>Kredit</td>
+                </tr>
+                <tr>
+                    <td><strong>5. Pendapatan (Penjualan)</strong></td>
+                    <td><span class="badge badge-credit">KREDIT</span></td>
+                    <td><span class="badge badge-debit">DEBIT</span></td>
+                    <td>Kredit</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Contoh Praktis:</strong> Perusahaan membeli bensin operasional Rp 50.000 tunai.<br>
+        &bull; Beban Bensin bertambah = <strong>Debit Rp 50.000</strong><br>
+        &bull; Kas Tunai berkurang = <strong>Kredit Rp 50.000</strong><br>
+        <em>Hasilnya: Debit (50rb) = Kredit (50rb) &rarr; SEIMBANG!</em></p>
+    </div>
+
+    <!-- BAB 2 -->
+    <h2 class="section-heading" id="bab2"><i class="fa-solid fa-server text-indigo-600"></i> BAB 2: Arsitektur & Keunggulan Sistem</h2>
+    <ul>
+        <li><strong>Real-time Double Entry Engine</strong>: Tanpa perlu proses posting manual akhir bulan. Setiap transaksi yang disimpan langsung mengalir ke Jurnal, Buku Besar, Neraca Saldo, Laba Rugi, hingga Neraca secara instan.</li>
+        <li><strong>AI Natural Language Journaling (Google Gemini)</strong>: Mengetik kalimat instruksi bebas (misal: <em>"bayar listrik dan air 350rb pakai BCA"</em>), AI langsung menerjemahkan menjadi jurnal debit-kredit otomatis.</li>
+        <li><strong>Multi-Tenancy & Multi-Company</strong>: Satu platform mampu menangani banyak perusahaan/cabang sekaligus dengan isolasi data yang aman.</li>
+        <li><strong>Role-Based Access Control (RBAC)</strong>: Hak akses ketat antara Administrator, Akuntan, Kasir (terisolasi), dan Super Admin SaaS.</li>
+    </ul>
+
+    <!-- BAB 3 -->
+    <h2 class="section-heading" id="bab3"><i class="fa-solid fa-chart-pie text-blue-600"></i> BAB 3: Bedah Menu 1 - Dashboard Eksekutif</h2>
+    <p><strong>URL:</strong> <code>/dashboard</code></p>
+    <p><strong>Fungsi:</strong> Memberikan ringkasan instan kondisi kesehatan keuangan perusahaan kepada pemilik bisnis dalam hitungan detik tanpa harus membaca laporan akuntansi yang rumit.</p>
+    <div class="card-box">
+        <ul>
+            <li><strong>Kartu KPI Metrik Utama</strong>: Total Pendapatan, Total Beban, Laba Bersih Bulan Berjalan, dan Saldo Likuiditas Kas/Bank.</li>
+            <li><strong>Grafik Tren Arus Kas & Laba</strong>: Memantau naik-turun performa keuangan bulanan.</li>
+            <li><strong>Donut Chart Struktur Beban</strong>: Menganalisis pos pengeluaran mana yang menyerap anggaran terbesar.</li>
+            <li><strong>Tabel Transaksi Terakhir</strong>: Feed pemantauan arus kas terkini secara langsung.</li>
+        </ul>
+    </div>
+
+    <!-- BAB 4 -->
+    <h2 class="section-heading" id="bab4"><i class="fa-solid fa-money-bill-transfer text-emerald-600"></i> BAB 4: Bedah Menu 2 - Modul Transaksi</h2>
+
+    <h3 class="subsection-heading">Submenu 2.1: Catat Transaksi Baru (<code>/transactions/create</code>)</h3>
+    <p>Pintu gerbang utama seluruh pencatatan uang masuk, uang keluar, dan mutasi kas:</p>
+    <div class="card-box card-accent">
+        <ul>
+            <li><strong>Mode 1: Catat Cepat Standar (Single Entry Form)</strong>: Cocok untuk transaksi harian kasir/staf umum (Pemasukan, Pengeluaran, Transfer Antar-Bank). Memilih Akun Simpan, Akun Diterima, Nominal, dan Catatan.</li>
+            <li><strong>Mode 2: Jurnal Majemuk (Multi-Baris)</strong>: Digunakan saat satu transaksi melibatkan banyak akun sekaligus (misal: bayar sewa + deposit listrik + potongan pajak). Dilengkapi tombol proteksi yang otomatis mengunci tombol simpan jika Debit &ne; Kredit.</li>
+            <li><strong>Mode 3: Asisten AI Gemini</strong>: Membaca teks bebas dan memetakan akun COA otomatis.</li>
+            <li><strong>Kolom Kontak (Pelanggan / Vendor)</strong>: Menghubungkan transaksi dengan rekanan bisnis untuk keperluan jejak audit.</li>
+            <li><strong>Kolom Tag Proyek / Cabang</strong>: Memilih label proyek (contoh: <code>🏷️ lokatara</code>) agar laporan laba rugi proyek tersebut dapat difilter mandiri.</li>
+        </ul>
+    </div>
+
+    <h3 class="subsection-heading">Submenu 2.2: Riwayat Transaksi (<code>/transactions/history</code>)</h3>
+    <p>Buku log seluruh transaksi yang pernah dicatat:</p>
+    <ul>
+        <li>Filter pencarian multi-kriteria: Nomor Transaksi, Jenis, <strong>Tag Proyek</strong>, dan Rentang Tanggal.</li>
+        <li>Badge warna Tag Proyek di bawah nomor transaksi untuk kemudahan identifikasi visual.</li>
+        <li><strong>Hapus Transaksi Cerdas</strong>: Saat sebuah transaksi dihapus, sistem secara otomatis menghapus catatan jurnal (header dan item) yang terkait di buku jurnal untuk mencegah laporan keuangan menjadi timpang.</li>
+    </ul>
+
+    <!-- BAB 5 -->
+    <h2 class="section-heading" id="bab5"><i class="fa-solid fa-database text-sky-600"></i> BAB 5: Bedah Menu 3 - Master Data & Aset Tetap</h2>
+    <div class="card-box">
+        <h3 class="subsection-heading" style="margin-top:0;">Submenu Master Data:</h3>
+        <ul>
+            <li><strong>Bagan Akun (Chart of Accounts / COA) (<code>/master/accounts</code>)</strong>: Daftar rekening penampung transaksi dengan sistem penomoran hierarki 5 kategori baku (1-Harta, 2-Kewajiban, 3-Modal, 4-Pendapatan, 6/8-Beban).</li>
+            <li><strong>Pelanggan & Vendor (Kontak) (<code>/master/contacts</code>)</strong>: Direktori rekanan pihak ketiga (Customer, Vendor, Karyawan).</li>
+            <li><strong>Metode Pembayaran (<code>/master/payment-methods</code>)</strong>: Menghubungkan media pembayaran fisik (Tunai, QRIS, Transfer BCA) dengan akun buku besar kas/bank yang bersesuaian.</li>
+            <li><strong>Master Pajak (<code>/master/taxes</code>)</strong>: Tarif perpajakan (PPN 11%, PPh 21, PPh 23) yang terhubung dengan akun hutang/piutang pajak.</li>
+            <li><strong>Tag / Label Proyek (<code>/master/tags</code>)</strong>: Pengelompokan transaksi multidimensi per Proyek (misal: <em>lokatara</em>), Cabang, atau Divisi tanpa perlu menambah ratusan akun baru di COA.</li>
+            <li><strong>Tutup Buku Periode (<code>/closing</code>)</strong>: Otomatisasi jurnal penutup (Closing Entry) akhir bulan untuk memindahkan laba bersih ke akun Laba Ditahan serta mengunci periode lama dari manipulasi data.</li>
+        </ul>
+    </div>
+
+    <div class="card-box card-emerald">
+        <h3 class="subsection-heading" style="margin-top:0;">Submenu Aset Tetap & Depresiasi (<code>/assets</code>)</h3>
+        <p>Mengelola barang berharga yang dipakai jangka panjang (> 1 tahun):</p>
+        <ul>
+            <li><strong>Upload & Preview Foto Aset</strong>: Dilengkapi modal lightbox pembesar gambar aset.</li>
+            <li><strong>Kalkulasi Nilai Buku Otomatis</strong>: Nilai Buku = Biaya Perolehan - Akumulasi Penyusutan.</li>
+            <li><strong>Metode Depresiasi</strong>: Mendukung metode <em>Garis Lurus (Straight Line)</em> dan <em>Saldo Menurun (Declining Balance)</em> berdasarkan masa manfaat dan nilai residu.</li>
+            <li><strong>Jurnal Pembelian Otomatis</strong>: Saat aset disimpan, sistem otomatis menjurnal mutasi penambahan Harta Tetap dan pengurangan Kas/penambahan Hutang.</li>
+        </ul>
+    </div>
+
+    <!-- BAB 6 -->
+    <h2 class="section-heading" id="bab6"><i class="fa-solid fa-file-invoice-dollar text-purple-600"></i> BAB 6: Bedah Menu 4 - Modul 7 Laporan Keuangan Standar SAK</h2>
+
+    <div class="card-box card-accent">
+        <h3 class="subsection-heading" style="margin-top:0;">1. Laporan Jurnal Umum (<code>/reports/journal</code>)</h3>
+        <p>Buku harian kronologis seluruh ayat jurnal berpasangan (Debit & Kredit). Dilengkapi filter akun, <strong>filter Tag Proyek</strong>, cetak voucher transaksi, export Excel, dan status keseimbangan jurnal.</p>
+    </div>
+
+    <div class="card-box card-emerald">
+        <h3 class="subsection-heading" style="margin-top:0;">2. Laporan Laba Rugi (Profit & Loss) (<code>/reports/profit-loss</code>)</h3>
+        <p>Menghitung profitabilitas perusahaan dalam satu rentang waktu. Memiliki <strong>Filter Tag / Proyek</strong> sehingga pemilik dapat melihat apakah Proyek tertentu (misal: <em>lokatara</em>) menghasilkan keuntungan atau kerugian bersih.</p>
+    </div>
+
+    <div class="card-box card-amber">
+        <h3 class="subsection-heading" style="margin-top:0;">3. Neraca Keuangan (Balance Sheet) (<code>/reports/balance-sheet</code>)</h3>
+        <p>Potret posisi kekayaan perusahaan per tanggal tertentu dengan format skontro formal: Sisi Kiri (Aset) harus sama persis dengan Sisi Kanan (Kewajiban + Modal).</p>
+    </div>
+
+    <div class="card-box">
+        <h3 class="subsection-heading" style="margin-top:0;">4. Neraca Saldo (Trial Balance) (<code>/reports/trial-balance</code>)</h3>
+        <p>Lembar uji saldo akhir seluruh akun untuk memastikan total saldo Debit persis sama dengan total saldo Kredit sebelum laporan resmi diterbitkan.</p>
+    </div>
+
+    <div class="card-box">
+        <h3 class="subsection-heading" style="margin-top:0;">5. Buku Besar (General Ledger) (<code>/reports/general-ledger</code>)</h3>
+        <p>Kartu kendali mutasi per satu akun spesifik (misal Kas atau Piutang) lengkap dengan tanggal, nomor referensi, keterangan, dan saldo berjalan (running balance).</p>
+    </div>
+
+    <div class="card-box">
+        <h3 class="subsection-heading" style="margin-top:0;">6. Laporan Arus Kas (Cash Flow) (<code>/reports/cash-flow</code>)</h3>
+        <p>Memetakan pergerakan uang tunai riil ke dalam 3 aktivitas utama: Operasional, Investasi (pembelian aset), dan Pendanaan (modal/pinjaman).</p>
+    </div>
+
+    <div class="card-box">
+        <h3 class="subsection-heading" style="margin-top:0;">7. Laporan Beban Operasional (<code>/reports/operating-expenses</code>)</h3>
+        <p>Analisis rincian seluruh pos beban biaya harian lengkap dengan persentase dan filter Tag Proyek.</p>
+    </div>
+
+    <!-- BAB 7 -->
+    <h2 class="section-heading" id="bab7"><i class="fa-solid fa-gear text-slate-700"></i> BAB 7: Bedah Menu 5, 6 & 7 - Pengaturan, Multi-Perusahaan & SaaS</h2>
+    <ul>
+        <li><strong>Pengaturan Utama (<code>/settings/main</code>)</strong>: Konfigurasi nama bisnis, logo, mata uang, zona waktu, dan API Key Google Gemini AI.</li>
+        <li><strong>Pemetaan Akun Default (<code>/settings/account_mappings</code>)</strong>: Mengunci akun default (Kas Utama, Piutang, Hutang, HPP, Penjualan, Laba Ditahan) agar otomatisasi sistem tidak pernah salah pos akun.</li>
+        <li><strong>Karyawan & Akses (<code>/settings/employees</code>)</strong>: Menambah pengguna baru dengan hak akses: Admin, Akuntan, Kasir, atau Auditor.</li>
+        <li><strong>Multi-Perusahaan (<code>/company/switch</code>)</strong>: Fitur tenant-switching yang memudahkan 1 pemilik memegang banyak badan usaha atau cabang sekaligus.</li>
+        <li><strong>Langganan & Super Admin SaaS (<code>/subscription</code> & <code>/superadmin/dashboard</code>)</strong>: Model bisnis SaaS untuk memantau paket sewa software, verifikasi invoice, dan status aktif tenant.</li>
+    </ul>
+
+    <!-- BAB 8 -->
+    <h2 class="section-heading" id="bab8"><i class="fa-solid fa-person-chalkboard text-rose-600"></i> BAB 8: Skenario Live Demo Presentasi (7-10 Menit)</h2>
+    <ol>
+        <li><strong>Menit 01: Pembukaan & Dashboard</strong> &rarr; Tunjukkan 4 metrik KPI (Omset, Beban, Laba Bersih, Kas) dan jelaskan bahwa dashboard ini dirancang agar pemilik bisnis langsung paham status finansialnya dalam 5 detik.</li>
+        <li><strong>Menit 03: Input Transaksi Pintar (AI & Tag)</strong> &rarr; Buka Catat Transaksi, gunakan asisten AI Gemini dengan mengetik bahasa bebas. Pilih Tag Proyek <code>🏷️ lokatara</code>, lalu simpan transaksi.</li>
+        <li><strong>Menit 05: Verifikasi Jurnal Realtime</strong> &rarr; Buka Laporan Jurnal Umum, tunjukkan ayat jurnal double-entry otomatis beserta status seimbang dan bukti voucher jurnal.</li>
+        <li><strong>Menit 07: Laba Rugi per Proyek</strong> &rarr; Buka Laporan Laba Rugi, ubah filter Tag Proyek menjadi <code>lokatara</code>, klik Tampilkan &rarr; Tunjukkan bahwa laporan Laba Rugi langsung menyaring laba khusus proyek tersebut.</li>
+        <li><strong>Menit 08: Modul Aset Tetap</strong> &rarr; Buka Daftar Aset, perlihatkan foto fisik aset dengan modal preview lightbox, serta jelaskan perhitungan nilai buku otomatis.</li>
+        <li><strong>Menit 10: Penutup</strong> &rarr; Simpulkan bahwa aplikasi ini mengintegrasikan seluruh siklus akuntansi otomatis, ramah bagi pemula, terproteksi dari salah catat, dan siap berskala enterprise.</li>
+    </ol>
+
+    <!-- BAB 9 -->
+    <h2 class="section-heading" id="bab9"><i class="fa-solid fa-circle-question text-blue-600"></i> BAB 9: Tanya Jawab Kritis Penguji/Dosen & Kunci Jawabannya</h2>
+
+    <div class="qa-item">
+        <div class="qa-question">
+            <span class="qa-icon">1</span>
+            <span>Bagaimana sistem ini menjamin pembukuan tidak akan pernah berat sebelah (unbalanced)?</span>
+        </div>
+        <div class="qa-answer">
+            Sistem menerapkan validasi berlapis. Di antarmuka, transaksi majemuk mengunci tombol simpan jika Debit &ne; Kredit. Di sisi backend, sistem menggunakan <em>Database Transaction (ACID)</em>: jika ada kegagalan simpan pada salah satu baris jurnal, seluruh transaksi langsung di-<em>rollback</em> (dibatalkan) sehingga data jurnal selalu 100% seimbang.
+        </div>
+    </div>
+
+    <div class="qa-item">
+        <div class="qa-question">
+            <span class="qa-icon">2</span>
+            <span>Apa bedanya menggunakan Bagan Akun (COA) saja dibanding memanfaatkan Tag Proyek?</span>
+        </div>
+        <div class="qa-answer">
+            COA adalah struktur baku akuntansi. Jika kita mengandalkan COA untuk memantau proyek, akun akan membengkak ratusan baris (misal: Beban Bensin Proyek A, Beban Bensin Proyek B). Dengan Tag Proyek, akun COA tetap bersih dan standar, namun transaksi memiliki dimensi analitik tambahan sehingga Laba Rugi per proyek dapat disaring mandiri.
+        </div>
+    </div>
+
+    <div class="qa-item">
+        <div class="qa-question">
+            <span class="qa-icon">3</span>
+            <span>Bagaimana cara kerja metode penyusutan Garis Lurus (Straight Line) pada modul aset?</span>
+        </div>
+        <div class="qa-answer">
+            Sistem mengambil Biaya Perolehan Aset dikurangi Nilai Residu, lalu dibagi dengan Masa Manfaat (dalam bulan). Nilai beban penyusutan bulanan ini dialokasikan untuk mendebit Akun Beban Penyusutan dan mengkredit Akun Akumulasi Penyusutan, sehingga Nilai Buku Bersih berkurang secara proporsional.
+        </div>
+    </div>
+
+    <div class="qa-item">
+        <div class="qa-question">
+            <span class="qa-icon">4</span>
+            <span>Kenapa proses Tutup Buku (Closing Period) perlu mengunci data historis lampau?</span>
+        </div>
+        <div class="qa-answer">
+            Tutup buku memindahkan laba/rugi bersih ke akun permanen Laba Ditahan dan mengenolkan kembali akun pendapatan serta beban. Penguncian data wajib dilakukan untuk integritas audit dan kepatuhan perpajakan agar laporan yang sudah disahkan tidak dapat diubah-ubah secara sepihak oleh staf.
+        </div>
+    </div>
+
+    <div class="qa-item">
+        <div class="qa-question">
+            <span class="qa-icon">5</span>
+            <span>Bagaimana AI Gemini bekerja di aplikasi ini?</span>
+        </div>
+        <div class="qa-answer">
+            Aplikasi menghubungkan prompt teks bahasa Indonesia dari pengguna dengan daftar COA perusahaan ke Google Gemini API. Gemini membedah maksud transaksi, mengekstrak nilai uang, dan memilih akun Debit serta Kredit yang paling cocok dalam format JSON terstruktur untuk dieksekusi oleh form transaksi.
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

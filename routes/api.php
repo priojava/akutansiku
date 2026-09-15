@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     // 1. Master Accounts & Data
     Route::get('/accounts', [AccountApiController::class, 'index']);
-    Route::post('/accounts/initial-balances', [AccountApiController::class, 'updateInitialBalances']);
+    Route::post('/accounts/initial-balances', [AccountApiController::class, 'updateInitialBalances'])->middleware('subscription.writable');
     Route::get('/contacts', [AccountApiController::class, 'contacts']);
     Route::get('/payment-methods', [AccountApiController::class, 'paymentMethods']);
 
     // 2. Transactions & Journal
     Route::get('/transactions', [TransactionApiController::class, 'index']);
-    Route::post('/transactions', [TransactionApiController::class, 'store']);
+    Route::post('/transactions', [TransactionApiController::class, 'store'])->middleware('subscription.writable');
     Route::get('/transactions/{id}', [TransactionApiController::class, 'show']);
 
     // 3. Reports
@@ -28,5 +28,5 @@ Route::prefix('v1')->group(function () {
     Route::get('/reports/cash-flow', [ReportApiController::class, 'cashFlow']);
 
     // 4. AI Journaling Helper
-    Route::post('/ai/parse', [AiApiController::class, 'parseNaturalLanguage']);
+    Route::post('/ai/parse', [AiApiController::class, 'parseNaturalLanguage'])->middleware('subscription.writable');
 });

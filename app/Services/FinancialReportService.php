@@ -210,32 +210,32 @@ class FinancialReportService
     /**
      * Laporan Laba Rugi (Profit and Loss Statement)
      */
-    public function getProfitAndLoss(int $companyId, string $startDate, string $endDate): array
+    public function getProfitAndLoss(int $companyId, string $startDate, string $endDate, ?int $tagId = null): array
     {
         // 1. Pendapatan Penjualan (Kategori: Pendapatan)
-        $pendapatanAccounts = $this->getCategoryMutations($companyId, ['Pendapatan'], $startDate, $endDate, 'Credit');
+        $pendapatanAccounts = $this->getCategoryMutations($companyId, ['Pendapatan'], $startDate, $endDate, 'Credit', $tagId);
         $totalPendapatan = array_sum(array_column($pendapatanAccounts, 'total'));
 
         // 2. Harga Pokok Penjualan (HPP)
-        $hppAccounts = $this->getCategoryMutations($companyId, ['Harga Pokok Penjualan', 'HPP'], $startDate, $endDate, 'Debit');
+        $hppAccounts = $this->getCategoryMutations($companyId, ['Harga Pokok Penjualan', 'HPP'], $startDate, $endDate, 'Debit', $tagId);
         $totalHpp = array_sum(array_column($hppAccounts, 'total'));
 
         // Laba Kotor = Total Pendapatan - Total HPP
         $labaKotor = $totalPendapatan - $totalHpp;
 
         // 3. Beban Operasional (Beban)
-        $bebanAccounts = $this->getCategoryMutations($companyId, ['Beban'], $startDate, $endDate, 'Debit');
+        $bebanAccounts = $this->getCategoryMutations($companyId, ['Beban'], $startDate, $endDate, 'Debit', $tagId);
         $totalBebanOperasional = array_sum(array_column($bebanAccounts, 'total'));
 
         // Laba Bersih Operasional / Pendapatan Operasional = Laba Kotor - Beban Operasional
         $labaBersihOperasional = $labaKotor - $totalBebanOperasional;
 
         // 4. Pendapatan Lainnya (Non Operasional)
-        $pendapatanLainnya = $this->getCategoryMutations($companyId, ['Pendapatan Lainnya'], $startDate, $endDate, 'Credit');
+        $pendapatanLainnya = $this->getCategoryMutations($companyId, ['Pendapatan Lainnya'], $startDate, $endDate, 'Credit', $tagId);
         $totalPendapatanLainnya = array_sum(array_column($pendapatanLainnya, 'total'));
 
         // 5. Beban Lainnya & Pajak Penghasilan (Non Operasional)
-        $allBebanLainnya = $this->getCategoryMutations($companyId, ['Beban Lainnya'], $startDate, $endDate, 'Debit');
+        $allBebanLainnya = $this->getCategoryMutations($companyId, ['Beban Lainnya'], $startDate, $endDate, 'Debit', $tagId);
         $bebanLainnya = [];
         $pajakPenghasilanList = [];
 
@@ -507,9 +507,9 @@ class FinancialReportService
     /**
      * Laporan Beban Operasional
      */
-    public function getOperatingExpenses(int $companyId, string $startDate, string $endDate): array
+    public function getOperatingExpenses(int $companyId, string $startDate, string $endDate, ?int $tagId = null): array
     {
-        $bebanList = $this->getCategoryMutations($companyId, ['Beban'], $startDate, $endDate, 'Debit');
+        $bebanList = $this->getCategoryMutations($companyId, ['Beban'], $startDate, $endDate, 'Debit', $tagId);
         $totalBeban = array_sum(array_column($bebanList, 'total'));
 
         return [
@@ -522,9 +522,9 @@ class FinancialReportService
     /**
      * Laporan Jurnal Umum (General Journal Report)
      */
-    public function getJournalReport(int $companyId, string $startDate, string $endDate, ?string $type = null, ?int $accountId = null, ?string $search = null): array
+    public function getJournalReport(int $companyId, string $startDate, string $endDate, ?string $type = null, ?int $accountId = null, ?string $search = null, ?int $tagId = null): array
     {
-        $query = JournalEntry::with(['items.account', 'creator', 'transaction.contact'])
+        $query = JournalEntry::with(['items.account', 'creator', 'transaction.contact', 'transaction.tag'])
             ->where('company_id', $companyId)
             ->whereBetween('date', [$startDate, $endDate]);
 
@@ -543,6 +543,12 @@ class FinancialReportService
         if ($accountId) {
             $query->whereHas('items', function ($q) use ($accountId) {
                 $q->where('account_id', $accountId);
+            });
+        }
+
+        if ($tagId) {
+            $query->whereHas('transaction', function ($q) use ($tagId) {
+                $q->where('tag_id', $tagId);
             });
         }
 
@@ -619,6 +625,8 @@ class FinancialReportService
                 'description' => $entry->description,
                 'creator' => $entry->creator?->name ?? 'Admin / System',
                 'contact_name' => $entry->transaction?->contact?->name,
+                'tag_name' => $entry->transaction?->tag?->name,
+                'tag_color' => $entry->transaction?->tag?->color,
                 'total_debit' => $entryDebit,
                 'total_credit' => $entryCredit,
                 'is_balanced' => round($entryDebit, 2) === round($entryCredit, 2),
@@ -636,7 +644,7 @@ class FinancialReportService
         ];
     }
 
-    private function getCategoryMutations(int $companyId, array $categories, string $startDate, string $endDate, string $type = 'Debit'): array
+    private function getCategoryMutations(int $companyId, array $categories, string $startDate, string $endDate, string $type = 'Debit', ?int $tagId = null): array
     {
         $accounts = Account::where('company_id', $companyId)
             ->whereIn('category', $categories)
@@ -647,8 +655,13 @@ class FinancialReportService
         $result = [];
         foreach ($accounts as $acc) {
             $sum = JournalItem::where('account_id', $acc->id)
-                ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
+                ->whereHas('journalEntry', function ($q) use ($startDate, $endDate, $tagId) {
                     $q->whereBetween('date', [$startDate, $endDate]);
+                    if ($tagId) {
+                        $q->whereHas('transaction', function ($t) use ($tagId) {
+                            $t->where('tag_id', $tagId);
+                        });
+                    }
                 })
                 ->selectRaw('COALESCE(SUM(debit), 0) as total_debit, COALESCE(SUM(credit), 0) as total_credit')
                 ->first();

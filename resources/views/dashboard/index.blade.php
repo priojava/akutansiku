@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
-@section('title', ($currentRole ?? 'admin') === 'cashier' ? 'Terminal Kasir & Shift' : 'Executive Financial Dashboard')
+@section('title', in_array($currentRole ?? 'admin', ['cashier', 'staff']) ? 'Panel Staf Operasional' : 'Executive Financial Dashboard')
 
 @section('content')
-@if(($currentRole ?? 'admin') === 'cashier')
+@if(in_array($currentRole ?? 'admin', ['cashier', 'staff']))
     @include('dashboard.cashier')
 @else
 <div class="space-y-8 animate-in fade-in duration-300">

@@ -19,19 +19,30 @@ class CheckRole
             abort(403, 'Akses ditolak: Anda belum login.');
         }
 
-        // Ambil role user pada company aktif
-        $companyId = $request->header('X-Company-Id') ?: ($user->default_company_id ?: 1);
-        $userCompany = $user->companies()->where('companies.id', $companyId)->first();
-        $userRole = $userCompany ? $userCompany->pivot->role : 'admin';
+        if ($user->isSuperAdmin()) {
+            return $next($request);
+        }
 
-        if (!empty($roles) && !in_array($userRole, $roles) && $userRole !== 'admin') {
-            if ($request->expectsJson()) {
+        // Ambil role user pada company aktif
+        $companyId = $request->header('X-Company-Id') ?: (session('active_company_id') ?: ($user->default_company_id ?: 1));
+        $userCompany = $user->companies()->where('companies.id', $companyId)->first();
+        $userRole = $userCompany ? $userCompany->pivot->role : ($user->isAdmin($companyId) ? 'admin' : 'staff');
+
+        // Normalisasi alias cashier & staff
+        $normalizedUserRole = in_array($userRole, ['cashier', 'staff']) ? 'staff' : $userRole;
+        $normalizedAllowedRoles = array_map(fn($r) => in_array($r, ['cashier', 'staff']) ? 'staff' : $r, $roles);
+
+        if (!empty($normalizedAllowedRoles) && !in_array($normalizedUserRole, $normalizedAllowedRoles) && $userRole !== 'admin') {
+            $message = 'Akses ditolak: Level pengguna Anda (' . ucfirst($userRole) . ') tidak memiliki izin untuk fitur ini.';
+
+            if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Akses ditolak: Level pengguna Anda (' . ucfirst($userRole) . ') tidak memiliki izin untuk fitur ini.'
+                    'message' => $message,
                 ], 403);
             }
-            abort(403, 'Akses ditolak: Level akun Anda (' . ucfirst($userRole) . ') tidak memiliki izin untuk fitur ini.');
+
+            return redirect()->route('dashboard')->with('error', $message);
         }
 
         return $next($request);

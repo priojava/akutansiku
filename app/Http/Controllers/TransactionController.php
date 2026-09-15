@@ -176,10 +176,10 @@ class TransactionController extends Controller
         $currentUser = auth()->user() ?? $request->user();
         $currentRole = $currentUser ? $currentUser->getRoleInCompany($company->id) : 'admin';
 
-        $query = Transaction::with(['contact', 'debitAccount', 'creditAccount', 'creator', 'journalEntry.items'])
+        $query = Transaction::with(['contact', 'debitAccount', 'creditAccount', 'creator', 'journalEntry.items', 'tag'])
             ->where('company_id', $company->id);
 
-        if ($currentRole === 'cashier' && $currentUser) {
+        if (in_array($currentRole, ['cashier', 'staff']) && $currentUser) {
             $query->where('created_by', $currentUser->id);
         }
 
@@ -191,6 +191,10 @@ class TransactionController extends Controller
             $query->where('type', $request->type);
         }
 
+        if ($request->filled('tag_id')) {
+            $query->where('tag_id', $request->tag_id);
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -200,8 +204,9 @@ class TransactionController extends Controller
         }
 
         $transactions = $query->orderByDesc('date')->orderByDesc('time')->paginate(20);
+        $tags = Tag::where('company_id', $company->id)->get();
 
-        return view('transactions.history', compact('company', 'transactions', 'currentRole', 'currentUser'));
+        return view('transactions.history', compact('company', 'transactions', 'currentRole', 'currentUser', 'tags'));
     }
 
     public function aiParse(Request $request)

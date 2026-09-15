@@ -120,7 +120,7 @@
             </div>
 
             <div class="p-6 space-y-4" x-data="{
-                apiKey: '{{ $settings->gemini_api_key ?? '' }}',
+                apiKey: '{{ $settings->gemini_api_key ?: config('services.gemini.api_key') ?: '' }}',
                 showKey: false,
                 testLoading: false,
                 testStatus: null,
@@ -160,7 +160,7 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-800 mb-1">Google AI Studio API Key</label>
                     <p class="text-[11px] text-slate-500 mb-2">
-                        Masukkan API Key dari Google AI Studio. Jika dikosongkan, sistem akan otomatis tetap berjalan dengan <strong>Mesin Pintar Lokal</strong> bawaan tanpa error.
+                        API Key bawaan sistem telah aktif secara otomatis untuk perusahaan Anda. Anda dapat menggunakan key bawaan ini atau menggantinya dengan API Key Google AI Studio Anda sendiri kapan saja.
                     </p>
                     <div class="relative flex items-center">
                         <input :type="showKey ? 'text' : 'password'" 

@@ -18,6 +18,16 @@
                 <input type="date" name="end_date" id="end_date_input" value="{{ $endDate }}" class="bg-transparent focus:outline-none font-semibold text-slate-800 cursor-pointer">
             </div>
 
+            <!-- Filter Tag Proyek / Cabang -->
+            <select name="tag_id" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:bg-white focus:outline-none">
+                <option value="">Semua Tag / Proyek</option>
+                @foreach($tags as $t)
+                    <option value="{{ $t->id }}" {{ ($tagId ?? '') == $t->id ? 'selected' : '' }}>
+                        🏷️ {{ $t->name }}
+                    </option>
+                @endforeach
+            </select>
+
             <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
                 <i class="fa-solid fa-filter text-[11px]"></i>
                 <span>Tampilkan</span>
@@ -96,6 +106,12 @@
             <p class="text-[11px] text-slate-400 italic mt-0.5">
                 (Dinyatakan dalam Rupiah Indonesia)
             </p>
+            @if(!empty($tagId) && ($activeTag = $tags->firstWhere('id', $tagId)))
+                <div class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white shadow-2xs" style="background-color: {{ $activeTag->color ?? '#3b82f6' }}">
+                    <i class="fa-solid fa-tag text-[10px]"></i>
+                    <span>Tag / Proyek: {{ $activeTag->name }}</span>
+                </div>
+            @endif
         </div>
 
         <!-- Statement Table (Proper HTML table for perfect layout in PDF and Excel) -->

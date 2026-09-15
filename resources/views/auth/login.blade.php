@@ -96,29 +96,35 @@
                     🚀 1-Klik Masuk Sebagai (Test Role)
                 </p>
 
-                <div class="grid grid-cols-4 gap-2">
-                    <!-- 1. Admin -->
-                    <a href="{{ route('login.quick', 'admin') }}" class="p-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl text-center group transition">
+                <div class="grid grid-cols-5 gap-1.5">
+                    <!-- 1. Owner -->
+                    <a href="{{ route('login.quick', 'admin') }}" class="p-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl text-center group transition" title="Owner (Administrator)">
                         <div class="text-xs mb-0.5">👑</div>
-                        <div class="font-bold text-[10px] text-purple-900">Admin</div>
+                        <div class="font-bold text-[10px] text-purple-900 truncate">Owner</div>
                     </a>
 
                     <!-- 2. Akuntan -->
-                    <a href="{{ route('login.quick', 'accountant') }}" class="p-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-center group transition">
+                    <a href="{{ route('login.quick', 'accountant') }}" class="p-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-center group transition" title="Akuntan (Finance)">
                         <div class="text-xs mb-0.5">💼</div>
-                        <div class="font-bold text-[10px] text-blue-900">Akuntan</div>
+                        <div class="font-bold text-[10px] text-blue-900 truncate">Akuntan</div>
                     </a>
 
-                    <!-- 3. Kasir -->
-                    <a href="{{ route('login.quick', 'cashier') }}" class="p-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-center group transition">
-                        <div class="text-xs mb-0.5">🛒</div>
-                        <div class="font-bold text-[10px] text-emerald-900">Kasir</div>
+                    <!-- 3. Auditor -->
+                    <a href="{{ route('login.quick', 'auditor') }}" class="p-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-center group transition" title="Auditor (Read-Only)">
+                        <div class="text-xs mb-0.5">🔍</div>
+                        <div class="font-bold text-[10px] text-amber-900 truncate">Auditor</div>
                     </a>
 
-                    <!-- 4. Super Admin -->
-                    <a href="{{ route('login.quick', 'superadmin') }}" class="p-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-center group transition">
+                    <!-- 4. Staff -->
+                    <a href="{{ route('login.quick', 'staff') }}" class="p-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-center group transition" title="Staff Operasional">
+                        <div class="text-xs mb-0.5">📝</div>
+                        <div class="font-bold text-[10px] text-emerald-900 truncate">Staff</div>
+                    </a>
+
+                    <!-- 5. Super Admin -->
+                    <a href="{{ route('login.quick', 'superadmin') }}" class="p-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-center group transition" title="Super Administrator Master SaaS">
                         <div class="text-xs mb-0.5">⚡</div>
-                        <div class="font-bold text-[10px] text-amber-900">SuperAdmin</div>
+                        <div class="font-bold text-[10px] text-slate-900 truncate">Super</div>
                     </a>
                 </div>
 

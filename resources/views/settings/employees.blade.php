@@ -163,10 +163,10 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Level Peran (Role) <span class="text-rose-500">*</span></label>
                     <select name="role" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option value="accountant">Akuntan (Finance) - Transaksi & Laporan</option>
-                        <option value="cashier">Kasir / Staf - Hanya Catat Transaksi</option>
-                        <option value="auditor">Auditor - Hanya Lihat Laporan</option>
-                        <option value="admin">Administrator (Owner) - Akses Penuh</option>
+                        <option value="admin">Owner (Administrator) - Akses Penuh & Pengaturan</option>
+                        <option value="accountant">Akuntan (Finance) - Jurnal, Tutup Buku & Laporan Keuangan</option>
+                        <option value="auditor">Auditor - Pengawas (Hanya Lihat Laporan / Read-Only)</option>
+                        <option value="staff">Staff Operasional - Input Kas & Transaksi Harian</option>
                     </select>
                 </div>
 

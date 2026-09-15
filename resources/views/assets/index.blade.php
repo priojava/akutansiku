@@ -5,6 +5,8 @@
 @section('content')
 <div class="space-y-6" x-data="{
     search: '',
+    previewPhoto: null,
+    previewTitle: '',
     formatRupiah(val) {
         return 'Rp ' + Number(val).toLocaleString('id-ID');
     }
@@ -102,11 +104,21 @@
                             x-show="!search || '{{ strtolower($asset->code . ' ' . $asset->name . ' ' . $asset->description . ' ' . ($asset->assetAccount?->name ?? '')) }}'.includes(search.toLowerCase())">
                             <td class="px-4 py-3 text-center text-slate-400 font-semibold">{{ $index + 1 }}</td>
                             <td class="px-4 py-3 font-mono font-bold text-blue-600">{{ $asset->code }}</td>
-                            <td class="px-4 py-3 font-bold text-slate-800 flex items-center space-x-2">
-                                @if($asset->photo_path)
-                                    <img src="{{ asset('storage/' . $asset->photo_path) }}" alt="{{ $asset->name }}" class="w-6 h-6 rounded object-cover border border-slate-200">
-                                @endif
-                                <span>{{ $asset->name }}</span>
+                            <td class="px-4 py-3 font-bold text-slate-800">
+                                <div class="flex items-center space-x-2.5">
+                                    @if($asset->photo_path)
+                                        <button type="button" 
+                                                @click="previewPhoto = '{{ asset('storage/' . $asset->photo_path) }}'; previewTitle = '{{ addslashes($asset->name) }}'" 
+                                                title="Klik untuk memperbesar gambar"
+                                                class="shrink-0 group relative focus:outline-none cursor-pointer">
+                                            <img src="{{ asset('storage/' . $asset->photo_path) }}" 
+                                                 alt="{{ $asset->name }}" 
+                                                 class="w-7 h-7 rounded-lg object-cover border border-slate-200 shadow-2xs group-hover:ring-2 group-hover:ring-blue-500 transition"
+                                                 onerror="this.onerror=null; this.style.display='none';">
+                                        </button>
+                                    @endif
+                                    <span class="truncate max-w-[200px]" title="{{ $asset->name }}">{{ $asset->name }}</span>
+                                </div>
                             </td>
                             <td class="px-4 py-3 text-slate-700">
                                 {{ $asset->assetAccount?->name }} <span class="text-[10px] text-slate-400">({{ $asset->assetAccount?->code }})</span>
@@ -201,6 +213,30 @@
             </table>
         </div>
 
+    </div>
+
+    <!-- Modal Preview Gambar Aset -->
+    <div x-show="previewPhoto" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" style="display: none;">
+        <div class="relative bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 p-4 space-y-3" @click.away="previewPhoto = null">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-image text-blue-600 text-sm"></i>
+                    <h4 class="text-xs font-bold text-slate-800" x-text="previewTitle"></h4>
+                </div>
+                <button type="button" @click="previewPhoto = null" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <div class="rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center max-h-[70vh] border border-slate-100">
+                <img :src="previewPhoto" :alt="previewTitle" class="max-h-[65vh] w-auto object-contain rounded-lg">
+            </div>
+            <div class="flex justify-end pt-1">
+                <a :href="previewPhoto" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center space-x-1">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    <span>Buka Ukuran Penuh</span>
+                </a>
+            </div>
+        </div>
     </div>
 
 </div>
