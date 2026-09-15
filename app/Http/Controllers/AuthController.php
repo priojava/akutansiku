@@ -112,20 +112,41 @@ class AuthController extends Controller
 
         $emailMap = [
             'admin' => 'admin@dapurgemoy.com',
+            'owner' => 'admin@dapurgemoy.com',
             'accountant' => 'akuntan@dapurgemoy.com',
+            'auditor' => 'auditor@dapurgemoy.com',
+            'staff' => 'staff@dapurgemoy.com',
             'cashier' => 'kasir@dapurgemoy.com',
         ];
 
         $email = $emailMap[$role] ?? 'admin@dapurgemoy.com';
-        $user = User::where('email', $email)->first() ?? User::first();
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            $nameMap = [
+                'auditor' => 'Hendro Santoso (Auditor)',
+                'staff' => 'Budi Pratama (Staff)',
+                'cashier' => 'Siti Kasir',
+                'accountant' => 'Siti Fatimah (Akuntan)',
+                'admin' => 'Budi Santoso (Owner)',
+            ];
+            $user = User::create([
+                'name' => $nameMap[$role] ?? 'Pengguna Demo',
+                'email' => $email,
+                'password' => bcrypt('password123'),
+                'default_company_id' => 1,
+            ]);
+            $user->companies()->syncWithoutDetaching([1 => ['role' => $role === 'staff' ? 'staff' : $role]]);
+        }
 
         Auth::login($user);
         request()->session()->regenerate();
 
         $roleLabel = match ($role) {
             'accountant' => 'Akuntan (Finance)',
-            'cashier' => 'Kasir / Staf',
-            default => 'Administrator'
+            'auditor' => 'Auditor (Pemeriksa Laporan)',
+            'staff', 'cashier' => 'Staff Operasional',
+            default => 'Owner (Administrator)'
         };
 
         return redirect()->route('dashboard')->with('success', "Anda sekarang masuk sebagai {$roleLabel} ({$user->name}).");

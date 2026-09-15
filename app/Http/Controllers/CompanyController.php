@@ -26,23 +26,42 @@ class CompanyController extends Controller
         $user = auth()->user();
 
         if ($user && $user->isSuperAdmin()) {
-            $companies = Company::withCount(['accounts', 'transactions'])->get();
+            $query = Company::withCount(['accounts', 'transactions']);
         } elseif ($user) {
-            $companies = $user->companies()->withCount(['accounts', 'transactions'])->get();
-            if ($companies->isEmpty()) {
-                $companies = Company::where('owner_id', $user->id)
+            $userCompaniesCount = $user->companies()->count();
+            if ($userCompaniesCount > 0) {
+                $query = $user->companies()->withCount(['accounts', 'transactions']);
+            } else {
+                $query = Company::where('owner_id', $user->id)
                     ->orWhere('id', $user->default_company_id)
-                    ->withCount(['accounts', 'transactions'])
-                    ->get();
+                    ->withCount(['accounts', 'transactions']);
             }
         } else {
-            $companies = Company::withCount(['accounts', 'transactions'])->get();
+            $query = Company::withCount(['accounts', 'transactions']);
         }
 
-        $activeCompanyId = session('active_company_id') ?? $user?->default_company_id ?? $companies->first()?->id ?? 1;
-        $company = $companies->firstWhere('id', $activeCompanyId) ?? $companies->first() ?? Company::first();
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('city', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
 
-        return view('company.index', compact('companies', 'company', 'activeCompanyId'));
+        $companies = $query->get();
+
+        $activeCompanyId = session('active_company_id') ?? $user?->default_company_id ?? $companies->first()?->id ?? 1;
+        $company = $companies->firstWhere('id', $activeCompanyId) ?? Company::find($activeCompanyId) ?? $companies->first() ?? Company::first();
+
+        // Hitung kuota entitas/perusahaan
+        $primaryCompany = $user ? ($user->companies()->first() ?? Company::where('owner_id', $user->id)->first() ?? $company) : $company;
+        $maxAllowed = $primaryCompany?->max_companies ?? ($primaryCompany?->subscription_plan === 'premium' ? 3 : 1);
+        $currentCount = $companies->count();
+        $canCreateMore = ($user && $user->isSuperAdmin()) ? true : ($currentCount < $maxAllowed);
+
+        return view('company.index', compact('companies', 'company', 'activeCompanyId', 'maxAllowed', 'currentCount', 'canCreateMore'));
     }
 
     /**
@@ -50,17 +69,30 @@ class CompanyController extends Controller
      */
     public function store(Request $request)
     {
+        $currentUser = auth()->user() ?? User::first();
+
+        // Validasi Kuota Entitas Perusahaan
+        if ($currentUser && !$currentUser->isSuperAdmin()) {
+            $userCompaniesCount = $currentUser->companies()->count();
+            if ($userCompaniesCount === 0) {
+                $userCompaniesCount = Company::where('owner_id', $currentUser->id)->count();
+            }
+            $primaryCompany = $currentUser->companies()->first() ?? Company::where('owner_id', $currentUser->id)->first();
+            $maxAllowed = $primaryCompany?->max_companies ?? ($primaryCompany?->subscription_plan === 'premium' ? 3 : 1);
+
+            if ($userCompaniesCount >= $maxAllowed) {
+                return back()->with('error', "Batas kuota maksimal {$maxAllowed} perusahaan telah tercapai untuk paket Anda. Silakan hubungi Administrator untuk menambah kuota entitas bisnis baru.");
+            }
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'city' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:100',
-            'plan_type' => 'nullable|in:free,premium',
             'conversion_date' => 'nullable|date',
         ]);
-
-        $currentUser = auth()->user() ?? User::first();
 
         $newCompany = $this->provisioningService->provisionCompany($validated, $currentUser);
 

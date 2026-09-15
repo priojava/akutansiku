@@ -89,6 +89,16 @@
                 <input type="date" name="end_date" value="{{ $endDate }}" class="bg-transparent focus:outline-none font-medium text-xs">
             </div>
 
+            <!-- Filter Tag Proyek / Cabang -->
+            <select name="tag_id" class="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:bg-white focus:outline-none max-w-44 truncate">
+                <option value="">Semua Tag</option>
+                @foreach($tags as $t)
+                    <option value="{{ $t->id }}" {{ ($tagId ?? '') == $t->id ? 'selected' : '' }}>
+                        🏷️ {{ $t->name }}
+                    </option>
+                @endforeach
+            </select>
+
             <button type="submit" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition flex items-center space-x-1 cursor-pointer">
                 <i class="fa-solid fa-filter text-[10px]"></i>
                 <span>Tampilkan</span>

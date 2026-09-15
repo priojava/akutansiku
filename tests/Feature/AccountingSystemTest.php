@@ -470,6 +470,15 @@ class AccountingSystemTest extends TestCase
             'name' => 'RUMAH MAKAN PADANG',
             'phone' => '085714680135',
         ]);
+
+        // 7. Verify search functionality
+        $searchResponse = $this->get('/company/switch?search=PADANG');
+        $searchResponse->assertStatus(200);
+        $searchResponse->assertSee('RUMAH MAKAN PADANG');
+
+        $notFoundResponse = $this->get('/company/switch?search=PERUSAHAAN_GAIB_12345');
+        $notFoundResponse->assertStatus(200);
+        $notFoundResponse->assertSee('Tidak ada perusahaan ditemukan');
     }
 
     public function test_cashier_dashboard_and_isolated_transaction_history(): void
@@ -551,14 +560,13 @@ class AccountingSystemTest extends TestCase
         $adminUser = User::first();
         $this->actingAs($adminUser);
 
-        // 1. Tenant visits subscription page
+        $company->update(['subscription_plan' => 'standard', 'plan_type' => 'free']);
         $subResponse = $this->get('/subscription');
         $subResponse->assertStatus(200);
-        $subResponse->assertSee('Status :');
-        $subResponse->assertSee('Perpanjang Langganan');
-        $subResponse->assertSee('Tagihan Terbaru');
+        $subResponse->assertSee('STANDARD');
+        $subResponse->assertSee('1 Cabang');
 
-        // 2. Tenant renews subscription for 6 months
+        // 2. Tenant renews subscription for 6 months (premium)
         $renewResponse = $this->post('/subscription/renew', [
             'plan_name' => 'premium',
             'duration_months' => 6,
@@ -717,4 +725,410 @@ class AccountingSystemTest extends TestCase
             'account_cogs_id' => $cogsAcc?->id,
         ]);
     }
+
+    public function test_payment_gateway_settings_and_midtrans_xendit_renewal(): void
+    {
+        $superadmin = User::firstOrCreate(
+            ['email' => 'superadmin@dapurgemoy.com'],
+            ['name' => 'Super Admin Master', 'password' => bcrypt('password'), 'is_superadmin' => true]
+        );
+        $this->actingAs($superadmin);
+
+        // 1. Super Admin visits payment settings page
+        $response = $this->get('/superadmin/payment-settings');
+        $response->assertStatus(200);
+        $response->assertSee('Midtrans Payment Gateway');
+        $response->assertSee('Xendit Payment Gateway');
+
+        // 2. Super Admin updates payment settings
+        $updateSettings = $this->post('/superadmin/payment-settings', [
+            'midtrans_enabled' => 1,
+            'midtrans_environment' => 'production',
+            'midtrans_server_key' => 'Mid-server-REAL123',
+            'midtrans_client_key' => 'Mid-client-REAL123',
+            'midtrans_merchant_id' => 'M12345',
+            'xendit_enabled' => 1,
+            'xendit_environment' => 'sandbox',
+            'xendit_secret_key' => 'xnd_development_TEST123',
+            'manual_transfer_enabled' => 1,
+            'bank_accounts_info' => 'BCA 12345 a/n SaaS Admin',
+        ]);
+        $updateSettings->assertSessionHas('success');
+
+        $this->assertDatabaseHas('saas_payment_settings', [
+            'midtrans_enabled' => 1,
+            'midtrans_is_production' => 1,
+            'midtrans_server_key' => 'Mid-server-REAL123',
+            'xendit_enabled' => 1,
+            'xendit_is_production' => 0,
+        ]);
+
+        // 3. Tenant views subscription page and sees Midtrans & Xendit
+        $company = Company::first();
+        session(['active_company_id' => $company->id]);
+
+        $subPage = $this->get('/subscription');
+        $subPage->assertStatus(200);
+        $subPage->assertSee('Midtrans Payment Gateway');
+        $subPage->assertSee('Xendit Checkout Invoice');
+
+        // 4. Tenant initiates renew with Midtrans
+        $renewMidtrans = $this->postJson('/subscription/renew', [
+            'plan_name' => 'premium',
+            'duration_months' => 6,
+            'payment_method' => 'midtrans',
+        ]);
+        $renewMidtrans->assertStatus(200);
+        $renewMidtrans->assertJson(['success' => true]);
+
+        $latestMidtransInvoice = \App\Models\SubscriptionInvoice::where('company_id', $company->id)->latest('id')->first();
+        $this->assertEquals('pending', $latestMidtransInvoice->status);
+        $this->assertStringContainsString('Midtrans', $latestMidtransInvoice->payment_method);
+
+        // Tenant completes payment (Sandbox simulation or Webhook)
+        $completeMidtrans = $this->postJson('/subscription/pay-complete/' . $latestMidtransInvoice->id);
+        $completeMidtrans->assertStatus(200);
+        $completeMidtrans->assertJson(['success' => true]);
+
+        $this->assertEquals('paid', $latestMidtransInvoice->fresh()->status);
+        $this->assertEquals('active', $company->fresh()->subscription_status);
+        $this->assertEquals('premium', $company->fresh()->subscription_plan);
+
+        // 5. Tenant initiates renew with Xendit
+        $renewXendit = $this->postJson('/subscription/renew', [
+            'plan_name' => 'standard',
+            'duration_months' => 1,
+            'payment_method' => 'xendit',
+        ]);
+        $renewXendit->assertStatus(200);
+        $renewXendit->assertJson(['success' => true]);
+
+        $latestXenditInvoice = \App\Models\SubscriptionInvoice::where('company_id', $company->id)->latest('id')->first();
+        $this->assertEquals('pending', $latestXenditInvoice->status);
+        $this->assertStringContainsString('Xendit', $latestXenditInvoice->payment_method);
+
+        // Complete Xendit payment
+        $completeXendit = $this->postJson('/subscription/pay-complete/' . $latestXenditInvoice->id);
+        $completeXendit->assertStatus(200);
+        $this->assertEquals('paid', $latestXenditInvoice->fresh()->status);
+        $this->assertEquals('standard', $company->fresh()->subscription_plan);
+    }
+
+    public function test_grace_period_and_read_only_lockout_behavior(): void
+    {
+        $company = Company::first();
+        $user = User::where('is_superadmin', false)->where('email', '!=', 'superadmin@dapurgemoy.com')->first();
+        if (!$user) {
+            $user = User::create([
+                'name' => 'Regular Tenant User',
+                'email' => 'regular@tenant.com',
+                'password' => bcrypt('password'),
+                'is_superadmin' => false,
+                'default_company_id' => $company->id,
+            ]);
+            $company->users()->attach($user->id, ['role' => 'admin']);
+        }
+        $user->update(['is_superadmin' => false, 'default_company_id' => $company->id]);
+        $this->actingAs($user);
+        session(['active_company_id' => $company->id]);
+
+        // 1. Kasus: Masa Trial/Langganan Habis 2 Hari Lalu (Dalam Masa Kelonggaran 7 Hari)
+        $company->update([
+            'subscription_expires_at' => now()->subDays(2),
+            'subscription_status' => 'trial',
+        ]);
+
+        $this->assertTrue($company->fresh()->isInGracePeriod());
+        $this->assertFalse($company->fresh()->isReadOnly());
+        $this->assertTrue($company->fresh()->isSubscriptionActive());
+        $this->assertGreaterThan(0, $company->fresh()->grace_days_remaining);
+
+        // Dashboard menampilkan banner kelonggaran
+        $dashResponse = $this->get('/dashboard');
+        $dashResponse->assertStatus(200);
+        $dashResponse->assertSee('Masa Kelonggaran: Sisa');
+
+        // Form create transaksi masih bisa dibuka saat grace period
+        $createTrxResponse = $this->get('/transactions/create');
+        $createTrxResponse->assertStatus(200);
+
+        // 2. Kasus: Lewat 8 Hari Setelah Jatuh Tempo (Melewati Kelonggaran 7 Hari -> MODE READ-ONLY)
+        $company->update([
+            'subscription_expires_at' => now()->subDays(8),
+            'subscription_status' => 'expired',
+        ]);
+
+        $this->assertFalse($company->fresh()->isInGracePeriod());
+        $this->assertTrue($company->fresh()->isReadOnly());
+        $this->assertFalse($company->fresh()->isSubscriptionActive());
+
+        // Dashboard menampilkan banner akun terkunci Read-Only
+        $dashLocked = $this->get('/dashboard');
+        $dashLocked->assertStatus(200);
+        $dashLocked->assertSee('Mode Read-Only Aktif');
+        $dashLocked->assertSee('Terkunci (Read-Only)');
+
+        // Laporan tetap BISA dibuka (Read-Only)
+        $reportResponse = $this->get('/reports/profit-loss');
+        $reportResponse->assertStatus(200);
+
+        $historyResponse = $this->get('/transactions/history');
+        $historyResponse->assertStatus(200);
+
+        // Akses create transaksi DIKUNCI / dialihkan ke perpanjang paket
+        $createLockedResponse = $this->get('/transactions/create');
+        $createLockedResponse->assertRedirect(route('subscription.index'));
+        $createLockedResponse->assertSessionHas('warning');
+
+        // Aksi submit transaksi baru DITOLAK oleh middleware
+        $debitAccount = \App\Models\Account::where('company_id', $company->id)->first();
+        $creditAccount = \App\Models\Account::where('company_id', $company->id)->where('id', '!=', $debitAccount->id)->first();
+
+        $storeAttempt = $this->post('/transactions/store', [
+            'entry_mode' => 'simple',
+            'date' => now()->format('Y-m-d'),
+            'time' => '12:00',
+            'transaction_type' => 'income',
+            'debit_account_id' => $debitAccount->id,
+            'credit_account_id' => $creditAccount->id,
+            'amount' => 50000,
+            'notes' => 'Coba transaksi saat expired',
+        ]);
+        $storeAttempt->assertSessionHas('error');
+
+        // 3. Super Admin bypasses read-only
+        $superadmin = User::firstOrCreate(
+            ['email' => 'superadmin@dapurgemoy.com'],
+            ['name' => 'Super Admin', 'password' => bcrypt('password'), 'is_superadmin' => true]
+        );
+        $superadmin->update(['is_superadmin' => true]);
+        $this->actingAs($superadmin);
+
+        $saasCreate = $this->get('/transactions/create');
+        $saasCreate->assertStatus(200);
+    }
+
+    public function test_user_can_change_password_in_profile(): void
+    {
+        $user = User::create([
+            'name' => 'Password Test User',
+            'email' => 'pwtest@dapurgemoy.com',
+            'password' => bcrypt('oldpassword123'),
+        ]);
+
+        $this->actingAs($user);
+
+        // 1. Profile page loads and sees Ganti Password form
+        $profileResponse = $this->get('/settings/profile');
+        $profileResponse->assertStatus(200);
+        $profileResponse->assertSee('Ganti Password');
+        $profileResponse->assertSee('Perbarui Password');
+
+        // 2. Submit wrong current password -> error
+        $wrongCurrent = $this->post('/settings/profile/password', [
+            'current_password' => 'wrongpass',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+        $wrongCurrent->assertSessionHasErrors('current_password');
+
+        // 3. Submit unconfirmed new password -> error
+        $unconfirmed = $this->post('/settings/profile/password', [
+            'current_password' => 'oldpassword123',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'different123',
+        ]);
+        $unconfirmed->assertSessionHasErrors('password');
+
+        // 4. Submit valid password change -> success
+        $validChange = $this->post('/settings/profile/password', [
+            'current_password' => 'oldpassword123',
+            'password' => 'newsecretpass123',
+            'password_confirmation' => 'newsecretpass123',
+        ]);
+        $validChange->assertSessionHas('success');
+
+        // 5. Verify user can now log in with the new password
+        $this->post('/logout');
+        $loginAttempt = $this->post('/login', [
+            'email' => 'pwtest@dapurgemoy.com',
+            'password' => 'newsecretpass123',
+        ]);
+        $loginAttempt->assertRedirect(route('dashboard'));
+    }
+
+    public function test_staff_role_permissions_and_restrictions(): void
+    {
+        $company = Company::first();
+
+        $staffUser = User::create([
+            'name' => 'Budi Staf Restriksi',
+            'email' => 'budistaf@dapurgemoy.com',
+            'password' => bcrypt('password123'),
+            'default_company_id' => $company->id,
+        ]);
+
+        $company->users()->attach($staffUser->id, ['role' => 'staff']);
+
+        $this->actingAs($staffUser);
+        session(['active_company_id' => $company->id]);
+
+        // 1. Staff can access operational dashboard
+        $dashboardResponse = $this->get('/dashboard');
+        $dashboardResponse->assertStatus(200);
+        $dashboardResponse->assertDontSee('Master & Aset');
+        $dashboardResponse->assertDontSee('Laporan Keuangan');
+        $dashboardResponse->assertDontSee('Sistem & Akses');
+
+        // 2. Staff can access transaction create and history
+        $createResponse = $this->get('/transactions/create');
+        $createResponse->assertStatus(200);
+
+        $historyResponse = $this->get('/transactions/history');
+        $historyResponse->assertStatus(200);
+        $historyResponse->assertSee('Mode Staf Terisolasi');
+
+        // 3. Staff can access profile to update profile and password
+        $profileResponse = $this->get('/settings/profile');
+        $profileResponse->assertStatus(200);
+        $profileResponse->assertSee('Ganti Password');
+
+        // 4. Staff is BLOCKED from accessing Master Data (COA)
+        $masterResponse = $this->get('/master/accounts');
+        $masterResponse->assertRedirect(route('dashboard'));
+        $masterResponse->assertSessionHas('error');
+
+        // 5. Staff is BLOCKED from accessing Financial Reports
+        $reportResponse = $this->get('/reports/profit-loss');
+        $reportResponse->assertRedirect(route('dashboard'));
+        $reportResponse->assertSessionHas('error');
+
+        // 6. Staff is BLOCKED from accessing Period Closing
+        $closingResponse = $this->get('/closing');
+        $closingResponse->assertRedirect(route('dashboard'));
+        $closingResponse->assertSessionHas('error');
+
+        // 7. Staff is BLOCKED from accessing Company Settings
+        $settingResponse = $this->get('/settings/main');
+        $settingResponse->assertRedirect(route('dashboard'));
+        $settingResponse->assertSessionHas('error');
+
+        // 8. Staff is BLOCKED from accessing Multi-Company Switcher
+        $companyResponse = $this->get('/company/switch');
+        $companyResponse->assertRedirect(route('dashboard'));
+        $companyResponse->assertSessionHas('error');
+    }
+
+    public function test_superadmin_can_view_tenant_email_and_reset_password(): void
+    {
+        // 1. Create a tenant with an owner having a custom password
+        $tenantOwner = User::create([
+            'name' => 'Owner Lupa Password',
+            'email' => 'lupapw@tenantcorp.com',
+            'password' => bcrypt('super_complex_forgotten_pw'),
+        ]);
+
+        $tenantCompany = Company::create([
+            'name' => 'PT Lupa Password Abadi',
+            'city' => 'Surabaya',
+            'phone' => '081234567899',
+            'email' => 'lupapw@tenantcorp.com',
+            'subscription_plan' => 'standard',
+            'subscription_status' => 'active',
+            'owner_id' => $tenantOwner->id,
+        ]);
+
+        $tenantCompany->users()->attach($tenantOwner->id, ['role' => 'admin']);
+
+        // 2. Super admin visits tenants list
+        $superadmin = User::firstOrCreate(
+            ['email' => 'superadmin@dapurgemoy.com'],
+            ['name' => 'Master Super Admin', 'password' => bcrypt('password'), 'is_superadmin' => true]
+        );
+        $superadmin->update(['is_superadmin' => true]);
+
+        $this->actingAs($superadmin);
+        $tenantsResponse = $this->get('/superadmin/tenants');
+        $tenantsResponse->assertStatus(200);
+        $tenantsResponse->assertSee('lupapw@tenantcorp.com');
+        $tenantsResponse->assertSee('Reset (password123)');
+
+        // 3. Super admin resets the tenant's password
+        $resetResponse = $this->post('/superadmin/tenants/' . $tenantCompany->id . '/reset-password');
+        $resetResponse->assertRedirect();
+        $resetResponse->assertSessionHas('success');
+
+        // 4. Verify the tenant owner can now login with 'password123'
+        $this->post('/logout');
+        $loginAttempt = $this->post('/login', [
+            'email' => 'lupapw@tenantcorp.com',
+            'password' => 'password123',
+        ]);
+        $loginAttempt->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($tenantOwner);
+    }
+
+    public function test_company_quota_enforcement_and_superadmin_increase(): void
+    {
+        // 1. Create a Standard User with 1 company (quota = 1)
+        $owner = User::create([
+            'name' => 'Owner Satu Toko',
+            'email' => 'satutoko@gmail.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $company1 = Company::create([
+            'name' => 'Toko Pertama',
+            'subscription_plan' => 'standard',
+            'subscription_status' => 'active',
+            'max_companies' => 1,
+            'owner_id' => $owner->id,
+        ]);
+        $company1->users()->attach($owner->id, ['role' => 'admin']);
+        $owner->update(['default_company_id' => $company1->id]);
+
+        $this->actingAs($owner);
+
+        // 2. Owner tries to create a 2nd company -> should be blocked by quota limit
+        $attempt = $this->post('/company/store', [
+            'name' => 'Toko Kedua Melebihi Kuota',
+            'city' => 'Semarang',
+        ]);
+        $attempt->assertSessionHas('error');
+        $this->assertDatabaseMissing('companies', ['name' => 'Toko Kedua Melebihi Kuota']);
+
+        // 3. Super admin increases quota to 3
+        $superadmin = User::firstOrCreate(
+            ['email' => 'superadmin@dapurgemoy.com'],
+            ['name' => 'Master Super Admin', 'password' => bcrypt('password'), 'is_superadmin' => true]
+        );
+        $superadmin->update(['is_superadmin' => true]);
+
+        $this->actingAs($superadmin);
+        $updateResp = $this->post('/superadmin/tenants/' . $company1->id . '/update-plan', [
+            'subscription_plan' => 'premium',
+            'subscription_status' => 'active',
+            'max_companies' => 3,
+        ]);
+        $updateResp->assertSessionHas('success');
+        $this->assertEquals(3, $company1->fresh()->max_companies);
+
+        // 4. Now owner can create the 2nd company
+        $this->actingAs($owner);
+        $createResp = $this->post('/company/store', [
+            'name' => 'Cabang Semarang Berhasil',
+            'city' => 'Semarang',
+        ]);
+        $createResp->assertSessionHas('success');
+        $this->assertDatabaseHas('companies', ['name' => 'Cabang Semarang Berhasil']);
+
+        // Check that the newly created company inherited the premium plan and has 120 COA
+        $company2 = Company::where('name', 'Cabang Semarang Berhasil')->first();
+        $this->assertNotNull($company2);
+        $this->assertEquals('premium', $company2->subscription_plan);
+        $this->assertEquals(120, $company2->accounts()->count());
+    }
 }
+
+
+

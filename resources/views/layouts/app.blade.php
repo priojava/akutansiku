@@ -170,15 +170,15 @@
         
         $roleLabel = match ($currentRole) {
             'accountant' => 'Akuntan (Finance)',
-            'cashier' => 'Kasir / Staf',
-            'auditor' => 'Auditor',
-            default => 'Administrator (Owner)'
+            'auditor' => 'Auditor (Pemeriksa)',
+            'staff', 'cashier' => 'Staff Operasional',
+            default => 'Owner (Administrator)'
         };
         
         $roleBadgeColor = match ($currentRole) {
             'accountant' => 'bg-blue-100 text-blue-800 border-blue-200',
-            'cashier' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
             'auditor' => 'bg-amber-100 text-amber-800 border-amber-200',
+            'staff', 'cashier' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
             default => 'bg-purple-100 text-purple-800 border-purple-200'
         };
     @endphp
@@ -199,12 +199,18 @@
                 <div>
                     <div class="flex items-center space-x-1.5">
                         <span class="font-bold text-slate-900 group-hover:text-blue-600 transition text-sm sm:text-base tracking-tight">{{ $company->name ?? 'Dapur Gemoy' }}</span>
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
-                            <i class="fa-solid fa-crown text-amber-500 mr-1 text-[9px]"></i> PRO
-                        </span>
+                        @if(($company->subscription_plan ?? $company->plan_type) === 'premium')
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
+                                <i class="fa-solid fa-crown text-amber-500 mr-1 text-[9px]"></i> PRO
+                            </span>
+                        @else
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs">
+                                STANDARD
+                            </span>
+                        @endif
                     </div>
                     <div class="flex items-center space-x-2 text-[11px] text-slate-400 font-medium -mt-0.5">
-                        <span>Multi-Cabang</span>
+                        <span>{{ ($company->subscription_plan ?? $company->plan_type) === 'premium' ? 'Multi-Cabang' : '1 Cabang' }}</span>
                         <span>&bull;</span>
                         <span class="text-emerald-600 font-semibold flex items-center">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse"></span> Cloud Sync Active
@@ -218,10 +224,17 @@
         <div class="flex items-center space-x-2.5 sm:space-x-3">
             
             <!-- Quick New Transaction Button -->
-            <a href="{{ route('transactions.create') }}" class="hidden sm:inline-flex items-center space-x-1.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-3.5 py-2 rounded-xl shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 transition-all duration-200 group">
-                <i class="fa-solid fa-plus text-xs group-hover:rotate-90 transition-transform duration-200"></i>
-                <span>Catat Transaksi</span>
-            </a>
+            @if(isset($company) && $company->isReadOnly())
+                <a href="{{ route('subscription.index') }}" class="hidden sm:inline-flex items-center space-x-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3.5 py-2 rounded-xl shadow-2xs transition" title="Akun Terkunci (Read-Only) - Klik untuk perpanjang langganan">
+                    <i class="fa-solid fa-lock text-rose-600 text-xs"></i>
+                    <span>Terkunci (Read-Only)</span>
+                </a>
+            @else
+                <a href="{{ route('transactions.create') }}" class="hidden sm:inline-flex items-center space-x-1.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-3.5 py-2 rounded-xl shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 transition-all duration-200 group">
+                    <i class="fa-solid fa-plus text-xs group-hover:rotate-90 transition-transform duration-200"></i>
+                    <span>Catat Transaksi</span>
+                </a>
+            @endif
 
             <!-- REST API Link Badge -->
             <a href="/api/v1/dashboard/summary" target="_blank" class="hidden md:inline-flex items-center space-x-1.5 text-xs bg-slate-50 hover:bg-blue-50/80 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-200 px-3 py-2 rounded-xl font-semibold transition" title="Buka REST API Documentation JSON">
@@ -259,20 +272,20 @@
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1.5">Ganti Akun Role (Testing):</p>
                         <div class="space-y-1">
                             <a href="{{ route('login.quick', 'admin') }}" class="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg hover:bg-purple-50 text-purple-900 font-semibold transition">
-                                <span class="flex items-center"><i class="fa-solid fa-crown text-purple-600 w-4 mr-1.5"></i> Administrator</span>
+                                <span class="flex items-center"><i class="fa-solid fa-crown text-purple-600 w-4 mr-1.5"></i> Owner (Admin)</span>
                                 @if($currentRole === 'admin') <i class="fa-solid fa-circle-check text-purple-600 text-xs"></i> @endif
                             </a>
                             <a href="{{ route('login.quick', 'accountant') }}" class="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg hover:bg-blue-50 text-blue-900 font-semibold transition">
                                 <span class="flex items-center"><i class="fa-solid fa-briefcase text-blue-600 w-4 mr-1.5"></i> Akuntan</span>
                                 @if($currentRole === 'accountant') <i class="fa-solid fa-circle-check text-blue-600 text-xs"></i> @endif
                             </a>
-                            <a href="{{ route('login.quick', 'cashier') }}" class="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-900 font-semibold transition">
-                                <span class="flex items-center"><i class="fa-solid fa-cart-shopping text-emerald-600 w-4 mr-1.5"></i> Kasir / Staf</span>
-                                @if($currentRole === 'cashier') <i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i> @endif
+                            <a href="{{ route('login.quick', 'auditor') }}" class="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg hover:bg-amber-50 text-amber-900 font-semibold transition">
+                                <span class="flex items-center"><i class="fa-solid fa-magnifying-glass text-amber-600 w-4 mr-1.5"></i> Auditor (Audit)</span>
+                                @if($currentRole === 'auditor') <i class="fa-solid fa-circle-check text-amber-600 text-xs"></i> @endif
                             </a>
-                            <a href="{{ route('login.quick', 'superadmin') }}" class="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg hover:bg-amber-50 text-amber-900 font-bold transition border border-amber-200/60 bg-amber-50/40">
-                                <span class="flex items-center"><i class="fa-solid fa-crown text-amber-500 w-4 mr-1.5"></i> Super Admin (SaaS Master)</span>
-                                @if($currentUser && $currentUser->is_superadmin) <i class="fa-solid fa-circle-check text-amber-600 text-xs"></i> @endif
+                            <a href="{{ route('login.quick', 'staff') }}" class="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-900 font-semibold transition">
+                                <span class="flex items-center"><i class="fa-solid fa-file-pen text-emerald-600 w-4 mr-1.5"></i> Staff Operasional</span>
+                                @if(in_array($currentRole, ['staff', 'cashier'])) <i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i> @endif
                             </a>
                         </div>
                     </div>
@@ -285,6 +298,10 @@
                         <a href="{{ route('settings.profile') }}" class="flex items-center space-x-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition">
                             <i class="fa-regular fa-user text-slate-400 w-4"></i>
                             <span>Profil Pengguna</span>
+                        </a>
+                        <a href="{{ route('panduan') }}" class="flex items-center space-x-2 px-3 py-2 text-xs text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold transition">
+                            <i class="fa-solid fa-book-open text-emerald-600 w-4"></i>
+                            <span>Buku Panduan Akuntansi</span>
                         </a>
 
                         <!-- Form Logout -->
@@ -365,7 +382,7 @@
                 </div>
 
                 <!-- SECTION 2: MASTER DATA & ASSET -->
-                @if($currentRole !== 'cashier')
+                @if(!in_array($currentRole, ['staff', 'cashier']))
                 <div>
                     <div class="sidebar-section-title">
                         <span>Master & Aset</span>
@@ -435,7 +452,7 @@
                 @endif
 
                 <!-- SECTION 3: LAPORAN KEUANGAN -->
-                @if($currentRole !== 'cashier')
+                @if(!in_array($currentRole, ['staff', 'cashier']))
                 <div>
                     <div class="sidebar-section-title">
                         <span>Laporan Keuangan</span>
@@ -539,7 +556,20 @@
                                 </div>
                                 <span>Langganan</span>
                             </div>
-                            <span class="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded">PRO</span>
+                            <span class="text-[9px] font-bold uppercase {{ ($company->subscription_plan ?? $company->plan_type) === 'premium' ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-blue-700 bg-blue-50 border border-blue-200' }} px-1.5 py-0.2 rounded">
+                                {{ ($company->subscription_plan ?? $company->plan_type) === 'premium' ? 'PRO' : 'SaaS' }}
+                            </span>
+                        </a>
+
+                        <!-- 4.4. Panduan Akuntansi -->
+                        <a href="{{ route('panduan') }}" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold nav-item-parent {{ request()->routeIs('panduan*') ? 'nav-item-parent-active text-emerald-700 font-bold' : 'text-slate-600' }}">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center shadow-2xs {{ request()->routeIs('panduan*') ? 'bg-gradient-to-tr from-emerald-600 to-teal-600 text-white shadow-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border border-emerald-100/60' }}">
+                                    <i class="fa-solid fa-book-open text-xs"></i>
+                                </div>
+                                <span>Panduan</span>
+                            </div>
+                            <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">Buku</span>
                         </a>
                     </div>
                 </div>
@@ -580,6 +610,24 @@
                                 <span>Semua Tagihan</span>
                             </div>
                         </a>
+
+                        <a href="{{ route('superadmin.payment_settings') }}" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold nav-item-parent {{ request()->routeIs('superadmin.payment_settings*') ? 'nav-item-parent-active text-purple-700 font-bold' : 'text-slate-600' }}">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center shadow-2xs {{ request()->routeIs('superadmin.payment_settings*') ? 'bg-gradient-to-tr from-purple-700 to-indigo-800 text-white shadow-purple-500/20' : 'bg-purple-50 text-purple-700 border border-purple-200' }}">
+                                    <i class="fa-solid fa-credit-card text-xs"></i>
+                                </div>
+                                <span>Payment Gateway</span>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('superadmin.plans') }}" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold nav-item-parent {{ request()->routeIs('superadmin.plans*') ? 'nav-item-parent-active text-purple-700 font-bold' : 'text-slate-600' }}">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center shadow-2xs {{ request()->routeIs('superadmin.plans*') ? 'bg-gradient-to-tr from-purple-700 to-indigo-800 text-white shadow-purple-500/20' : 'bg-purple-50 text-purple-700 border border-purple-200' }}">
+                                    <i class="fa-solid fa-tags text-xs"></i>
+                                </div>
+                                <span>Kelola Paket SaaS</span>
+                            </div>
+                        </a>
                     </div>
                 </div>
                 @endif
@@ -612,6 +660,63 @@
                         <i class="fa-solid fa-circle-exclamation text-base"></i>
                     </div>
                     <span class="font-semibold">{{ session('error') }}</span>
+                </div>
+            @endif
+
+            @if(session('warning'))
+                <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-center space-x-3 shadow-xs animate-in fade-in duration-200">
+                    <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                    </div>
+                    <span class="font-semibold">{{ session('warning') }}</span>
+                </div>
+            @endif
+
+            <!-- 1. GRACE PERIOD BANNER (KELONGGARAN 7 HARI) -->
+            @if(isset($company) && $company->isInGracePeriod())
+                <div class="mb-6 p-4.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-200">
+                    <div class="flex items-start sm:items-center space-x-3.5">
+                        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
+                            <i class="fa-solid fa-clock-rotate-left text-base"></i>
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h4 class="font-extrabold text-sm text-slate-900">Masa Trial / Langganan Berakhir</h4>
+                                <span class="bg-amber-100 text-amber-900 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-amber-300">Masa Kelonggaran: Sisa {{ $company->grace_days_remaining }} Hari</span>
+                            </div>
+                            <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                                Anda sedang dalam masa toleransi kelonggaran 7 hari (transaksi masih aktif). Segera lakukan perpanjangan sebelum sistem otomatis dikunci ke mode <strong>Read-Only</strong>.
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ route('subscription.index') }}" class="shrink-0 px-4 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs font-bold rounded-xl shadow-md shadow-amber-600/20 hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-credit-card text-xs"></i>
+                        <span>Perpanjang Sekarang</span>
+                    </a>
+                </div>
+            @endif
+
+            <!-- 2. READ-ONLY / EXPIRED LOCKOUT BANNER (LEWAT 7 HARI KELONGGARAN) -->
+            @if(isset($company) && $company->isReadOnly())
+                <div class="mb-6 p-4.5 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-700 to-red-700 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-rose-600/20 animate-in fade-in duration-200">
+                    <div class="flex items-start sm:items-center space-x-3.5">
+                        <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md text-white flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+                            <i class="fa-solid fa-lock text-base text-rose-100"></i>
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h4 class="font-extrabold text-sm text-white">Akun Terkunci (Mode Read-Only Aktif)</h4>
+                                <span class="bg-white/20 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-white/30 backdrop-blur-xs">Transaksi Baru Dikunci</span>
+                            </div>
+                            <p class="text-xs text-rose-100 mt-0.5 leading-relaxed">
+                                Masa toleransi 7 hari telah berakhir. Anda tetap dapat membuka & mengekspor laporan keuangan, namun pencatatan transaksi baru dikunci hingga paket langganan diperpanjang.
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ route('subscription.index') }}" class="shrink-0 px-4 py-2.5 bg-white text-rose-700 hover:bg-rose-50 text-xs font-bold rounded-xl shadow-md transition-all duration-200 flex items-center justify-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                        <span>Buka Kunci / Bayar Paket</span>
+                    </a>
                 </div>
             @endif
 

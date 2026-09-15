@@ -12,7 +12,7 @@
                 <div class="flex items-center space-x-2">
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 backdrop-blur-md">
                         <i class="fa-solid fa-cart-shopping text-emerald-300 mr-1.5 text-[11px]"></i>
-                        Terminal Kasir & Shift Operasional
+                        Terminal Kasir &amp; Shift Operasional
                     </span>
                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30">
                         <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-1.5 animate-ping"></span> Shift Aktif

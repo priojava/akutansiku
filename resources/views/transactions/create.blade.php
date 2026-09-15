@@ -679,44 +679,46 @@
                                 class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
                         </div>
 
-                        <!-- Kontak -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pelanggan / Vendor / Kontak (Opsional)</label>
-                            <x-searchable-contact-select 
-                                name="contact_id" 
-                                :options="$contacts" 
-                                :selected="old('contact_id')" 
-                                placeholder="Tanpa Kontak..." 
-                                :required="false" />
+                        <!-- Kontak & Tag Proyek / Cabang (Grid 2 Kolom) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Pelanggan / Vendor (Opsional)</label>
+                                <x-searchable-contact-select 
+                                    name="contact_id" 
+                                    :options="$contacts" 
+                                    :selected="old('contact_id')" 
+                                    placeholder="Tanpa Kontak..." 
+                                    :required="false" />
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-xs font-semibold text-slate-700">Tag Proyek / Cabang (Opsional)</label>
+                                    <a href="{{ route('master.tags') }}" target="_blank" class="text-[10px] text-blue-600 hover:underline font-semibold flex items-center">
+                                        <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola Tag
+                                    </a>
+                                </div>
+                                <select name="tag_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                    <option value="">-- Tanpa Tag Proyek --</option>
+                                    @foreach($tags as $tag)
+                                        <option value="{{ $tag->id }}" {{ old('tag_id') == $tag->id ? 'selected' : '' }}>
+                                            🏷️ {{ $tag->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
-                        <!-- Link Opsional (Tag & Pajak) -->
-                        <div>
+                        <!-- Opsi Pajak (Opsional) -->
+                        <div x-show="entryMode === 'simple'">
                             <button type="button" @click="showOptional = !showOptional"
-                                class="text-xs text-blue-600 hover:underline font-medium">
-                                <span
-                                    x-text="showOptional ? '- Sembunyikan Opsi Tambahan' : '+ Opsional (Tag Proyek & Pajak)'"></span>
+                                class="text-xs text-blue-600 hover:underline font-medium flex items-center space-x-1">
+                                <span x-text="showOptional ? '- Sembunyikan Opsi Pajak' : '+ Tambahkan Pajak (PPN/PPh)'"></span>
                             </button>
 
                             <div x-show="showOptional"
-                                class="mt-3 grid grid-cols-2 gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                class="mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
                                 <div>
-                                    <div class="flex items-center justify-between mb-1">
-                                        <label class="block text-[11px] font-semibold text-slate-600">Tag Proyek / Cabang</label>
-                                        <a href="{{ route('master.tags') }}" target="_blank" class="text-[10px] text-blue-600 hover:underline font-semibold flex items-center">
-                                            <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola Tag
-                                        </a>
-                                    </div>
-                                    <select name="tag_id"
-                                        class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs">
-                                        <option value="">Tanpa Tag</option>
-                                        @foreach($tags as $tag)
-                                            <option value="{{ $tag->id }}">{{ $tag->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div x-show="entryMode === 'simple'">
-                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Pajak</label>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Pajak Transaksi</label>
                                     <select name="tax_id" :disabled="entryMode !== 'simple'"
                                         class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs">
                                         <option value="">Tanpa Pajak</option>
