@@ -59,15 +59,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Akun Asset Tetap <span class="text-rose-500">*</span></label>
-                    <select name="asset_account_id" required
-                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option value="">Pilih Akun Asset Tetap...</option>
-                        @foreach($assetAccounts as $acc)
-                            <option value="{{ $acc->id }}" {{ old('asset_account_id') == $acc->id ? 'selected' : '' }}>
-                                {{ $acc->name }} ({{ $acc->code }})
-                            </option>
-                        @endforeach
-                    </select>
+                    <x-searchable-account-select 
+                        name="asset_account_id" 
+                        :options="$assetAccounts" 
+                        :selected="old('asset_account_id')" 
+                        placeholder="Pilih Akun Asset Tetap..." 
+                        :required="true" />
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Nilai Perolehan (IDR) <span class="text-rose-500">*</span></label>
@@ -80,15 +77,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Akun Pajak (Opsional)</label>
-                    <select name="tax_account_id"
-                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option value="">Pilih Akun Pajak</option>
-                        @foreach($taxAccounts as $taxAcc)
-                            <option value="{{ $taxAcc->id }}" {{ old('tax_account_id') == $taxAcc->id ? 'selected' : '' }}>
-                                {{ $taxAcc->name }} ({{ $taxAcc->code }})
-                            </option>
-                        @endforeach
-                    </select>
+                    <x-searchable-account-select 
+                        name="tax_account_id" 
+                        :options="$taxAccounts" 
+                        :selected="old('tax_account_id')" 
+                        placeholder="Pilih Akun Pajak (Opsional)..." 
+                        :required="false" />
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Nilai Pajak (IDR) (Opsional)</label>
@@ -101,14 +95,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Akun Dikreditkan <span class="text-rose-500">*</span></label>
-                    <select name="credited_account_id" required
-                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        @foreach($creditedAccounts as $credAcc)
-                            <option value="{{ $credAcc->id }}" {{ old('credited_account_id') == $credAcc->id ? 'selected' : ($credAcc->code == '1-10001' ? 'selected' : '') }}>
-                                {{ $credAcc->name }} ({{ $credAcc->code }})
-                            </option>
-                        @endforeach
-                    </select>
+                    <x-searchable-account-select 
+                        name="credited_account_id" 
+                        :options="$creditedAccounts" 
+                        :selected="old('credited_account_id', $creditedAccounts->firstWhere('code', '1-10001')?->id)" 
+                        placeholder="Pilih Akun Dikreditkan..." 
+                        :required="true" />
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Foto Asset</label>
@@ -135,36 +127,51 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Metode Depresiasi</label>
-                            <select name="depreciation_method" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <select name="depreciation_method" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
                                 <option value="straight_line">Garis Lurus (Straight Line)</option>
                                 <option value="declining_balance">Saldo Menurun (Declining Balance)</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Masa Manfaat (Tahun)</label>
-                            <input type="number" name="useful_life_years" min="1" max="50" value="{{ old('useful_life_years', 4) }}"
-                                   class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Masa Manfaat</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="relative">
+                                    <input type="number" name="useful_life_years" min="0" max="50" value="{{ old('useful_life_years', 4) }}"
+                                           placeholder="0"
+                                           class="w-full px-3 py-2.5 pr-12 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                    <span class="absolute right-3 top-2.5 text-[11px] text-slate-400 font-semibold pointer-events-none">Tahun</span>
+                                </div>
+                                <div class="relative">
+                                    <input type="number" name="useful_life_months" min="0" max="11" value="{{ old('useful_life_months', 0) }}"
+                                           placeholder="0"
+                                           class="w-full px-3 py-2.5 pr-12 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                    <span class="absolute right-3 top-2.5 text-[11px] text-slate-400 font-semibold pointer-events-none">Bulan</span>
+                                </div>
+                            </div>
+                            <span class="text-[10px] text-slate-400 mt-1 block">Jika 6 bulan: isi <strong>0 Tahun, 6 Bulan</strong></span>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Akun Beban Penyusutan</label>
-                            <select name="expense_account_id" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                <option value="">Pilih Akun Beban...</option>
-                                @foreach($expenseAccounts as $expAcc)
-                                    <option value="{{ $expAcc->id }}">{{ $expAcc->name }} ({{ $expAcc->code }})</option>
-                                @endforeach
-                            </select>
+                            <x-searchable-account-select 
+                                name="expense_account_id" 
+                                :options="$expenseAccounts" 
+                                :selected="old('expense_account_id')" 
+                                placeholder="Pilih Akun Beban..." 
+                                :required="false"
+                                bg-color="bg-white" />
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Akun Akumulasi Penyusutan</label>
-                            <select name="accumulated_depreciation_account_id" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                <option value="">Pilih Akun Akumulasi...</option>
-                                @foreach($accumulatedAccounts as $accAcc)
-                                    <option value="{{ $accAcc->id }}">{{ $accAcc->name }} ({{ $accAcc->code }})</option>
-                                @endforeach
-                            </select>
+                            <x-searchable-account-select 
+                                name="accumulated_depreciation_account_id" 
+                                :options="$accumulatedAccounts" 
+                                :selected="old('accumulated_depreciation_account_id')" 
+                                placeholder="Pilih Akun Akumulasi..." 
+                                :required="false"
+                                bg-color="bg-white" />
                         </div>
                     </div>
 

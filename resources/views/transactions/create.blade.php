@@ -681,15 +681,13 @@
 
                         <!-- Kontak -->
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pelanggan / Vendor / Kontak
-                                (Opsional)</label>
-                            <select name="contact_id"
-                                class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                <option value="">Tanpa Kontak...</option>
-                                @foreach($contacts as $c)
-                                    <option value="{{ $c->id }}">{{ $c->name }} ({{ ucfirst($c->type) }})</option>
-                                @endforeach
-                            </select>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pelanggan / Vendor / Kontak (Opsional)</label>
+                            <x-searchable-contact-select 
+                                name="contact_id" 
+                                :options="$contacts" 
+                                :selected="old('contact_id')" 
+                                placeholder="Tanpa Kontak..." 
+                                :required="false" />
                         </div>
 
                         <!-- Link Opsional (Tag & Pajak) -->
@@ -703,8 +701,12 @@
                             <div x-show="showOptional"
                                 class="mt-3 grid grid-cols-2 gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
                                 <div>
-                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tag Proyek /
-                                        Cabang</label>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-[11px] font-semibold text-slate-600">Tag Proyek / Cabang</label>
+                                        <a href="{{ route('master.tags') }}" target="_blank" class="text-[10px] text-blue-600 hover:underline font-semibold flex items-center">
+                                            <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola Tag
+                                        </a>
+                                    </div>
                                     <select name="tag_id"
                                         class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs">
                                         <option value="">Tanpa Tag</option>

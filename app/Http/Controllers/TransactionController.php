@@ -212,4 +212,21 @@ class TransactionController extends Controller
 
         return response()->json($result);
     }
+
+    public function destroy(int $id)
+    {
+        $company = $this->getActiveCompany();
+        $transaction = \App\Models\Transaction::where('company_id', $company->id)->findOrFail($id);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($transaction) {
+            $journalEntries = \App\Models\JournalEntry::where('transaction_id', $transaction->id)->get();
+            foreach ($journalEntries as $entry) {
+                \App\Models\JournalItem::where('journal_entry_id', $entry->id)->delete();
+                $entry->delete();
+            }
+            $transaction->delete();
+        });
+
+        return back()->with('success', "Transaksi {$transaction->transaction_number} dan catatan jurnalnya berhasil dihapus.");
+    }
 }

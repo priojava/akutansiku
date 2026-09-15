@@ -119,7 +119,8 @@ class AssetController extends Controller
             'photo' => 'nullable|image|max:2048',
             'is_depreciated' => 'nullable|boolean',
             'depreciation_method' => 'nullable|string|in:straight_line,declining_balance',
-            'useful_life_years' => 'nullable|integer|min:1|max:50',
+            'useful_life_years' => 'nullable|integer|min:0|max:50',
+            'useful_life_months' => 'nullable|integer|min:0|max:11',
             'salvage_value' => 'nullable|string',
             'expense_account_id' => 'nullable|exists:accounts,id',
             'accumulated_depreciation_account_id' => 'nullable|exists:accounts,id',
@@ -142,11 +143,12 @@ class AssetController extends Controller
 
         $isDepreciated = $request->has('is_depreciated') || $request->input('is_depreciated') == 1;
         $usefulYears = intval($validated['useful_life_years'] ?? 0);
-        $usefulMonths = $usefulYears * 12;
+        $usefulInputMonths = intval($request->input('useful_life_months', 0));
+        $totalUsefulMonths = ($usefulYears * 12) + $usefulInputMonths;
 
         $depEndDate = $validated['depreciation_end_date'] ?? null;
-        if ($isDepreciated && !$depEndDate && $usefulYears > 0) {
-            $depEndDate = Carbon::parse($validated['acquisition_date'])->addYears((int) $usefulYears)->toDateString();
+        if ($isDepreciated && !$depEndDate && $totalUsefulMonths > 0) {
+            $depEndDate = Carbon::parse($validated['acquisition_date'])->addMonths($totalUsefulMonths)->toDateString();
         }
 
         $userId = auth()->id() ?? $request->user()?->id;
@@ -166,7 +168,7 @@ class AssetController extends Controller
             'is_depreciated' => $isDepreciated,
             'depreciation_method' => $isDepreciated ? ($validated['depreciation_method'] ?? 'straight_line') : null,
             'useful_life_years' => $isDepreciated ? $usefulYears : null,
-            'useful_life_months' => $isDepreciated ? $usefulMonths : null,
+            'useful_life_months' => $isDepreciated ? $totalUsefulMonths : null,
             'salvage_value' => $isDepreciated ? $salvageValue : 0,
             'expense_account_id' => $isDepreciated ? ($validated['expense_account_id'] ?? null) : null,
             'accumulated_depreciation_account_id' => $isDepreciated ? ($validated['accumulated_depreciation_account_id'] ?? null) : null,
@@ -220,7 +222,15 @@ class AssetController extends Controller
         foreach ($assets as $a) {
             $isDep = $a->is_depreciated ? 'Ya' : 'Tidak';
             $metode = $a->depreciation_method === 'declining_balance' ? 'Saldo Menurun' : ($a->is_depreciated ? 'Garis Lurus' : '-');
-            $masa = $a->useful_life_years ? "{$a->useful_life_years} Tahun" : '-';
+            if ($a->useful_life_months) {
+                $thn = floor($a->useful_life_months / 12);
+                $bln = $a->useful_life_months % 12;
+                $masa = trim(($thn > 0 ? "{$thn} Tahun " : '') . ($bln > 0 ? "{$bln} Bulan" : ''));
+            } elseif ($a->useful_life_years) {
+                $masa = "{$a->useful_life_years} Tahun";
+            } else {
+                $masa = '-';
+            }
             $endDate = $a->depreciation_end_date ? $a->depreciation_end_date->format('M Y') : '-';
 
             $csv .= sprintf(
@@ -250,4 +260,40 @@ class AssetController extends Controller
             'Content-Disposition' => 'attachment; filename="daftar_aset_' . date('Ymd_His') . '.csv"',
         ]);
     }
+
+    public function destroy(int $id)
+    {
+        $company = $this->getActiveCompany();
+        $asset = Asset::where('company_id', $company->id)->findOrFail($id);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($company, $asset) {
+            // Hapus transaksi & jurnal perolehan aset jika ada
+            $transactions = \App\Models\Transaction::where('company_id', $company->id)
+                ->where('notes', 'like', "%({$asset->code})%")
+                ->get();
+
+            foreach ($transactions as $trx) {
+                $journalEntries = \App\Models\JournalEntry::where('transaction_id', $trx->id)->get();
+                foreach ($journalEntries as $entry) {
+                    \App\Models\JournalItem::where('journal_entry_id', $entry->id)->delete();
+                    $entry->delete();
+                }
+                $trx->delete();
+            }
+
+            // Hapus jurnal penyusutan aset jika pernah dijalankan
+            $deprEntries = \App\Models\JournalEntry::where('company_id', $company->id)
+                ->where('notes', 'like', "%Penyusutan Aset: {$asset->name}%")
+                ->get();
+            foreach ($deprEntries as $entry) {
+                \App\Models\JournalItem::where('journal_entry_id', $entry->id)->delete();
+                $entry->delete();
+            }
+
+            $asset->delete();
+        });
+
+        return back()->with('success', "Aset '{$asset->name}' ({$asset->code}) beserta catatan jurnalnya berhasil dihapus.");
+    }
 }
+

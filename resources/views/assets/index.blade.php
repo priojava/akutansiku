@@ -137,7 +137,17 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-center font-medium">
-                                {{ $asset->useful_life_years ? $asset->useful_life_years . ' Tahun' : '-' }}
+                                @if($asset->useful_life_months)
+                                    @php
+                                        $thn = floor($asset->useful_life_months / 12);
+                                        $bln = $asset->useful_life_months % 12;
+                                    @endphp
+                                    {{ $thn > 0 ? $thn . ' Thn ' : '' }}{{ $bln > 0 ? $bln . ' Bln' : ($thn == 0 ? '-' : '') }}
+                                @elseif($asset->useful_life_years)
+                                    {{ $asset->useful_life_years }} Tahun
+                                @else
+                                    -
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-slate-700">
                                 {{ $asset->expenseAccount?->name ?: '-' }}
@@ -161,16 +171,23 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-center">
-                                @if($asset->is_depreciated)
-                                    <form method="POST" action="{{ route('assets.toggle_depreciation', $asset->id) }}">
+                                <div class="flex items-center justify-center space-x-1.5">
+                                    @if($asset->is_depreciated)
+                                        <form method="POST" action="{{ route('assets.toggle_depreciation', $asset->id) }}">
+                                            @csrf
+                                            <button type="submit" class="px-2 py-1 text-[11px] font-bold rounded-lg border transition {{ $asset->depreciation_status === 'active' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' }}">
+                                                {{ $asset->depreciation_status === 'active' ? 'Stop' : 'Aktif' }}
+                                            </button>
+                                        </form>
+                                    @endif
+                                    <form method="POST" action="{{ route('assets.destroy', $asset->id) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus aset \'{{ $asset->name }}\' ({{ $asset->code }}) ini? Jurnal perolehannya juga akan dibatalkan.')">
                                         @csrf
-                                        <button type="submit" class="px-2.5 py-1 text-[11px] font-bold rounded-lg border transition {{ $asset->depreciation_status === 'active' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' }}">
-                                            {{ $asset->depreciation_status === 'active' ? 'Stop' : 'Aktifkan' }}
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Hapus Aset">
+                                            <i class="fa-solid fa-trash-can text-sm"></i>
                                         </button>
                                     </form>
-                                @else
-                                    <span class="text-slate-400 text-[11px]">-</span>
-                                @endif
+                                </div>
                             </td>
                         </tr>
                     @empty

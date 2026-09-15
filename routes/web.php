@@ -36,6 +36,7 @@ Route::prefix('transactions')->name('transactions.')->group(function () {
     Route::post('/store', [TransactionController::class, 'store'])->name('store');
     Route::get('/history', [TransactionController::class, 'history'])->name('history');
     Route::post('/ai-parse', [TransactionController::class, 'aiParse'])->name('ai_parse');
+    Route::delete('/{id}', [TransactionController::class, 'destroy'])->name('destroy');
 });
 
 // 3. Master Data
@@ -54,6 +55,10 @@ Route::prefix('master')->name('master.')->group(function () {
     Route::post('/taxes', [MasterDataController::class, 'storeTax'])->name('taxes.store');
     Route::put('/taxes/{id}', [MasterDataController::class, 'updateTax'])->name('taxes.update');
     Route::delete('/taxes/{id}', [MasterDataController::class, 'destroyTax'])->name('taxes.destroy');
+    Route::get('/tags', [MasterDataController::class, 'tags'])->name('tags');
+    Route::post('/tags', [MasterDataController::class, 'storeTag'])->name('tags.store');
+    Route::put('/tags/{id}', [MasterDataController::class, 'updateTag'])->name('tags.update');
+    Route::delete('/tags/{id}', [MasterDataController::class, 'destroyTag'])->name('tags.destroy');
 });
 
 // Alias for taxes.index
@@ -66,6 +71,7 @@ Route::prefix('assets')->name('assets.')->group(function () {
     Route::post('/store', [\App\Http\Controllers\AssetController::class, 'store'])->name('store');
     Route::get('/export', [\App\Http\Controllers\AssetController::class, 'exportExcel'])->name('export');
     Route::post('/toggle-depreciation/{id}', [\App\Http\Controllers\AssetController::class, 'toggleDepreciation'])->name('toggle_depreciation');
+    Route::delete('/{id}', [\App\Http\Controllers\AssetController::class, 'destroy'])->name('destroy');
 });
 
 // 3.6. Tutup Buku (Period Closing)

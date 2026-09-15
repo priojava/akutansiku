@@ -158,13 +158,12 @@
                     </div>
                     <div class="md:col-span-5">
                         <label class="block text-[11px] font-medium text-slate-500 mb-1">Akun Beban Pajak</label>
-                        <select name="tax_expense_account_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            @foreach($taxExpenseAccounts as $acc)
-                                <option value="{{ $acc->id }}" {{ $defaultTaxExpense && $defaultTaxExpense->id == $acc->id ? 'selected' : '' }}>
-                                    ({{ $acc->code }}) {{ $acc->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <x-searchable-account-select 
+                            name="tax_expense_account_id" 
+                            :options="$taxExpenseAccounts" 
+                            :selected="old('tax_expense_account_id', $defaultTaxExpense?->id)" 
+                            placeholder="Pilih Akun Beban Pajak..." 
+                            :required="false" />
                     </div>
                     <div class="md:col-span-5">
                         <label class="block text-[11px] font-medium text-slate-500 mb-1">Jumlah Pajak</label>
@@ -182,13 +181,12 @@
                     <div class="md:col-span-2"></div>
                     <div class="md:col-span-5">
                         <label class="block text-[11px] font-medium text-slate-500 mb-1">Akun Hutang Pajak</label>
-                        <select name="tax_payable_account_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            @foreach($taxPayableAccounts as $acc)
-                                <option value="{{ $acc->id }}" {{ $defaultTaxPayable && $defaultTaxPayable->id == $acc->id ? 'selected' : '' }}>
-                                    ({{ $acc->code }}) {{ $acc->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <x-searchable-account-select 
+                            name="tax_payable_account_id" 
+                            :options="$taxPayableAccounts" 
+                            :selected="old('tax_payable_account_id', $defaultTaxPayable?->id)" 
+                            placeholder="Pilih Akun Hutang Pajak..." 
+                            :required="false" />
                     </div>
                     <div class="md:col-span-5"></div>
                 </div>
@@ -200,13 +198,12 @@
                     </div>
                     <div class="md:col-span-5">
                         <label class="block text-[11px] font-medium text-slate-500 mb-1">Akun Laba Ditahan / Ekuitas</label>
-                        <select name="retained_earnings_account_id" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            @foreach($equityAccounts as $acc)
-                                <option value="{{ $acc->id }}" {{ $defaultEquity && $defaultEquity->id == $acc->id ? 'selected' : '' }}>
-                                    ({{ $acc->code }}) {{ $acc->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <x-searchable-account-select 
+                            name="retained_earnings_account_id" 
+                            :options="$equityAccounts" 
+                            :selected="old('retained_earnings_account_id', $defaultEquity?->id)" 
+                            placeholder="Pilih Akun Laba Ditahan..." 
+                            :required="true" />
                     </div>
                     <div class="md:col-span-5">
                         <label class="block text-[11px] font-medium text-slate-500 mb-1">Nominal Bersih Akhir</label>
