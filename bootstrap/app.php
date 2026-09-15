@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'role' => \App\Http\Middleware\CheckRole::class,
+            'subscription.writable' => \App\Http\Middleware\CheckSubscriptionWritable::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

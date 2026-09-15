@@ -3,10 +3,11 @@
 @section('title', 'Kelola Multi-Perusahaan')
 
 @section('content')
-<div class="space-y-8 animate-in fade-in duration-300" x-data="{ 
+<div class="space-y-6 animate-in fade-in duration-300" x-data="{ 
     openCreateModal: false, 
     openEditModal: false,
-    editData: { id: null, name: '', city: '', address: '', phone: '', email: '', plan_type: 'premium' }
+    editData: { id: null, name: '', city: '', address: '', phone: '', email: '', plan_type: 'premium' },
+    searchQuery: '{{ request('search', '') }}'
 }">
 
     <!-- 1. Header Title & Top Action -->
@@ -23,10 +24,66 @@
             </p>
         </div>
 
-        <button @click="openCreateModal = true" class="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-md shadow-blue-500/20 hover:shadow-lg transition-all duration-200 cursor-pointer">
-            <i class="fa-solid fa-plus-circle"></i>
-            <span>+ Tambah Perusahaan</span>
-        </button>
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center space-x-2 {{ $canCreateMore ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-amber-50 border-amber-200 text-amber-800' }}">
+                <i class="fa-solid fa-layer-group text-xs"></i>
+                <span>Kuota: {{ $currentCount }} / {{ $maxAllowed }} Entitas</span>
+                @if(!$canCreateMore)
+                    <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-200/80 text-amber-900 font-bold uppercase">Penuh</span>
+                @endif
+            </div>
+
+            @if($canCreateMore)
+                <button @click="openCreateModal = true" class="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-md shadow-blue-500/20 hover:shadow-lg transition-all duration-200 cursor-pointer">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>+ Tambah Perusahaan</span>
+                </button>
+            @else
+                <button type="button" @click="alert('Batas kuota maksimal {{ $maxAllowed }} perusahaan untuk paket Anda telah tercapai.\n\nSilakan hubungi Administrator untuk menambah kuota entitas bisnis baru.')" class="inline-flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl border border-slate-300 transition-all duration-200 cursor-pointer" title="Kuota maksimal telah tercapai">
+                    <i class="fa-solid fa-lock text-xs text-amber-500"></i>
+                    <span>+ Tambah Perusahaan (Penuh)</span>
+                </button>
+            @endif
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+        <form method="GET" action="{{ route('company.switch') }}" class="flex-1 w-full flex items-center gap-2">
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input 
+                    type="text" 
+                    name="search" 
+                    x-model="searchQuery" 
+                    value="{{ request('search') }}" 
+                    placeholder="Cari nama perusahaan, kota, email, atau telepon..." 
+                    class="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                >
+                <button 
+                    type="button" 
+                    x-show="searchQuery" 
+                    @click="searchQuery = ''; window.location.href = '{{ route('company.switch') }}'" 
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                    title="Hapus pencarian"
+                >
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </button>
+            </div>
+            <button type="submit" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shrink-0 shadow-xs cursor-pointer">
+                <span>Cari</span>
+            </button>
+            @if(request('search'))
+                <a href="{{ route('company.switch') }}" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition shrink-0" title="Reset Pencarian">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            @endif
+        </form>
+
+        <div class="text-xs text-slate-500 shrink-0 font-medium flex items-center space-x-1.5">
+            <i class="fa-solid fa-building text-slate-400 text-[11px]"></i>
+            <span>Daftar: <strong class="text-slate-800 font-bold">{{ $companies->count() }} Perusahaan</strong></span>
+        </div>
     </div>
 
     <!-- 2. Grid Daftar Perusahaan -->
@@ -35,7 +92,9 @@
             @php
                 $isActive = ($comp->id == $activeCompanyId);
             @endphp
-            <div class="group bg-white rounded-2xl border {{ $isActive ? 'border-blue-500 ring-2 ring-blue-100 shadow-md' : 'border-slate-200/80 shadow-xs' }} overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative">
+            <div 
+                x-show="!searchQuery || '{{ strtolower(addslashes($comp->name . ' ' . $comp->city . ' ' . $comp->email . ' ' . $comp->phone)) }}'.includes(searchQuery.toLowerCase().trim())"
+                class="group bg-white rounded-2xl border {{ $isActive ? 'border-blue-500 ring-2 ring-blue-100 shadow-md' : 'border-slate-200/80 shadow-xs' }} overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative">
                 
                 @if($isActive)
                     <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
@@ -102,8 +161,15 @@
 
                 <!-- Card Footer Actions -->
                 <div class="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span class="inline-flex items-center font-extrabold text-[10px] tracking-wider uppercase px-2 py-0.5 rounded {{ $comp->plan_type === 'premium' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600' }}">
-                        <i class="fa-solid fa-crown mr-1 text-amber-500"></i> {{ strtoupper($comp->plan_type ?? 'PREMIUM') }}
+                    @php
+                        $isPro = ($comp->subscription_plan ?? $comp->plan_type) === 'premium';
+                    @endphp
+                    <span class="inline-flex items-center font-extrabold text-[10px] tracking-wider uppercase px-2 py-0.5 rounded {{ $isPro ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200' }}">
+                        @if($isPro)
+                            <i class="fa-solid fa-crown mr-1 text-amber-500"></i> PRO ENTERPRISE
+                        @else
+                            STANDARD
+                        @endif
                     </span>
 
                     <div class="flex items-center space-x-2">
@@ -154,6 +220,24 @@
 
             </div>
         @endforeach
+
+        @if($companies->isEmpty())
+            <div class="col-span-full bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-xs">
+                <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl mx-auto mb-3">
+                    <i class="fa-solid fa-building-circle-xmark"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">Tidak ada perusahaan ditemukan</h3>
+                <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                    Tidak ada entitas yang cocok dengan kata kunci pencarian "{{ request('search') }}".
+                </p>
+                <div class="mt-4">
+                    <a href="{{ route('company.switch') }}" class="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                        <i class="fa-solid fa-rotate-left text-[11px]"></i>
+                        <span>Reset Pencarian</span>
+                    </a>
+                </div>
+            </div>
+        @endif
     </div>
 
     <!-- ============================================================ -->
@@ -215,18 +299,13 @@
                     <textarea name="address" rows="2" placeholder="Alamat lengkap perusahaan..." class="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"></textarea>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Mulai Pembukuan</label>
-                        <input type="date" name="conversion_date" value="{{ \Carbon\Carbon::now()->startOfMonth()->toDateString() }}" class="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Tipe Paket Lisensi</label>
-                        <select name="plan_type" class="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-white">
-                            <option value="premium">Enterprise PRO (Premium)</option>
-                            <option value="free">Standard (Free)</option>
-                        </select>
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Mulai Pembukuan</label>
+                    <input type="date" name="conversion_date" value="{{ \Carbon\Carbon::now()->startOfMonth()->toDateString() }}" class="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                    <p class="text-[11px] text-slate-500 mt-1.5 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        <span>Paket lisensi & masa aktif otomatis mengikuti entitas utama (<strong class="text-slate-800">{{ strtoupper($company->subscription_plan === 'premium' ? 'PRO ENTERPRISE' : ($company->subscription_plan ?? 'STANDARD')) }}</strong>).</span>
+                    </p>
                 </div>
 
                 <!-- Submit Buttons -->

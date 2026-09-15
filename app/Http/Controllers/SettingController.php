@@ -222,6 +222,31 @@ class SettingController extends Controller
         return back()->with('success', 'Profil berhasil diperbarui.');
     }
 
+    public function updatePassword(Request $request)
+    {
+        $user = auth()->user() ?? User::first();
+
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|min:6|confirmed',
+        ], [
+            'current_password.required' => 'Password saat ini wajib diisi.',
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password baru minimal 6 karakter.',
+            'password.confirmed' => 'Konfirmasi password baru tidak cocok.',
+        ]);
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Password saat ini yang Anda masukkan salah.']);
+        }
+
+        $user->update([
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+        ]);
+
+        return back()->with('success', 'Password akun Anda berhasil diperbarui.');
+    }
+
     public function employees()
     {
         $company = $this->getActiveCompany();
@@ -230,9 +255,9 @@ class SettingController extends Controller
         // Roles definition & permission matrix
         $rolesMatrix = [
             'admin' => [
-                'name' => 'Administrator (Owner)',
+                'name' => 'Owner (Administrator)',
                 'badge' => 'bg-purple-100 text-purple-800 border-purple-200',
-                'description' => 'Akses penuh ke semua fitur, kunci/buka saldo awal, dan pengaturan sistem.',
+                'description' => 'Pemilik bisnis. Akses penuh ke semua fitur, kunci/buka saldo awal, dan pengaturan sistem.',
                 'can_lock_coa' => true,
                 'can_transactions' => true,
                 'can_master_data' => true,
@@ -242,31 +267,31 @@ class SettingController extends Controller
             'accountant' => [
                 'name' => 'Akuntan (Finance)',
                 'badge' => 'bg-blue-100 text-blue-800 border-blue-200',
-                'description' => 'Akses penuh transaksi, master data, dan semua laporan keuangan.',
+                'description' => 'Akses jurnal, tutup buku, rekonsiliasi, dan seluruh laporan keuangan.',
                 'can_lock_coa' => false,
                 'can_transactions' => true,
                 'can_master_data' => true,
                 'can_reports' => true,
                 'can_settings' => false,
             ],
-            'cashier' => [
-                'name' => 'Kasir / Staf Operasional',
-                'badge' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
-                'description' => 'Hanya mencatat transaksi harian (Pemasukan & Pengeluaran).',
-                'can_lock_coa' => false,
-                'can_transactions' => true,
-                'can_master_data' => false,
-                'can_reports' => false,
-                'can_settings' => false,
-            ],
             'auditor' => [
                 'name' => 'Auditor (Read-Only)',
                 'badge' => 'bg-amber-100 text-amber-800 border-amber-200',
-                'description' => 'Hanya melihat laporan keuangan dan history transaksi tanpa izin mengubah data.',
+                'description' => 'Pengawas keuangan. Hanya melihat dan mencetak laporan tanpa izin mengubah data.',
                 'can_lock_coa' => false,
                 'can_transactions' => false,
                 'can_master_data' => false,
                 'can_reports' => true,
+                'can_settings' => false,
+            ],
+            'staff' => [
+                'name' => 'Staff Operasional',
+                'badge' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                'description' => 'Mencatat transaksi kas masuk & kas keluar operasional harian.',
+                'can_lock_coa' => false,
+                'can_transactions' => true,
+                'can_master_data' => false,
+                'can_reports' => false,
                 'can_settings' => false,
             ],
         ];
@@ -282,7 +307,7 @@ class SettingController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string',
-            'role' => 'required|in:admin,accountant,cashier,auditor',
+            'role' => 'required|in:admin,accountant,auditor,staff,cashier',
         ]);
 
         $newUser = User::create([

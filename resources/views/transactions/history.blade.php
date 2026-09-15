@@ -16,26 +16,26 @@
         </a>
     </div>
 
-    @if(isset($currentRole) && $currentRole === 'cashier')
+    @if(isset($currentRole) && in_array($currentRole, ['cashier', 'staff']))
         <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl flex items-center justify-between shadow-2xs">
             <div class="flex items-center space-x-2.5">
                 <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
                     <i class="fa-solid fa-user-check"></i>
                 </div>
                 <div>
-                    <span class="text-xs font-bold block">Mode Kasir Terisolasi</span>
-                    <span class="text-[11px] text-emerald-600">Menampilkan riwayat transaksi khusus yang dicatat oleh kasir <strong>{{ $currentUser->name ?? 'Anda' }}</strong> pada perusahaan ini.</span>
+                    <span class="text-xs font-bold block">{{ $currentRole === 'cashier' ? 'Mode Kasir Terisolasi' : 'Mode Staf Terisolasi' }}</span>
+                    <span class="text-[11px] text-emerald-600">Menampilkan riwayat transaksi khusus yang dicatat oleh {{ $currentRole === 'cashier' ? 'kasir' : 'staf' }} <strong>{{ $currentUser->name ?? 'Anda' }}</strong> pada perusahaan ini.</span>
                 </div>
             </div>
             <span class="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-200/70 text-emerald-900 border border-emerald-300">
-                Khusus Kasir
+                {{ $currentRole === 'cashier' ? 'Khusus Kasir' : 'Khusus Staf' }}
             </span>
         </div>
     @endif
 
     <!-- Filter & Search -->
     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <form method="GET" action="{{ route('transactions.history') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="GET" action="{{ route('transactions.history') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
                 <label class="block text-[11px] font-semibold text-slate-600 mb-1">Cari Transaksi</label>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Nomor TRX / Catatan..."
@@ -49,6 +49,17 @@
                     <option value="expense" {{ request('type') == 'expense' ? 'selected' : '' }}>Pengeluaran</option>
                     <option value="transfer" {{ request('type') == 'transfer' ? 'selected' : '' }}>Transfer Kas</option>
                     <option value="journal" {{ request('type') == 'journal' ? 'selected' : '' }}>Jurnal Majemuk</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tag Proyek / Cabang</label>
+                <select name="tag_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none">
+                    <option value="">Semua Tag</option>
+                    @foreach($tags as $t)
+                        <option value="{{ $t->id }}" {{ request('tag_id') == $t->id ? 'selected' : '' }}>
+                            {{ $t->name }}
+                        </option>
+                    @endforeach
                 </select>
             </div>
             <div>
@@ -87,8 +98,17 @@
                 <tbody class="divide-y divide-slate-100">
                     @forelse($transactions as $trx)
                         <tr class="hover:bg-slate-50/80 transition">
-                            <td class="px-5 py-4 font-semibold text-blue-600">
-                                {{ $trx->transaction_number }}
+                            <td class="px-5 py-4">
+                                <div class="font-semibold text-blue-600 font-mono text-xs">
+                                    {{ $trx->transaction_number }}
+                                </div>
+                                @if($trx->tag)
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold text-white shadow-2xs" style="background-color: {{ $trx->tag->color ?? '#3b82f6' }}">
+                                            <i class="fa-solid fa-tag text-[8px] mr-1"></i>{{ $trx->tag->name }}
+                                        </span>
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-5 py-4 text-slate-600">
                                 {{ $trx->date->format('d M Y') }} <span class="text-[10px] text-slate-400">{{ $trx->time }}</span>

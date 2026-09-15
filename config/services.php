@@ -36,7 +36,7 @@ return [
     ],
 
     'gemini' => [
-        'api_key' => env('GEMINI_API_KEY'),
+        'api_key' => env('GEMINI_API_KEY', 'AQ.Ab8RN6LoDJ7glHsP2wlfOaR38B9JaMfatPa3C7CCJLkBOYdksQ'),
         'model' => env('GEMINI_MODEL', 'gemini-flash-latest'),
     ],
 

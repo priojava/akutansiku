@@ -24,7 +24,7 @@ class DashboardController extends Controller
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
 
-        if ($currentRole === 'cashier') {
+        if (in_array($currentRole, ['cashier', 'staff'])) {
             $today = Carbon::today()->toDateString();
             $userId = $currentUser?->id;
 

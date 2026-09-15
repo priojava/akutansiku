@@ -22,25 +22,43 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
+// Panduan Presentasi Lengkap
+Route::get('/panduan', function () {
+    $company = \App\Models\Company::first();
+    if (session()->has('active_company_id')) {
+        $company = \App\Models\Company::find(session('active_company_id')) ?? $company;
+    }
+    return view('guide.index', compact('company'));
+})->name('panduan');
+
+Route::get('/panduan/cetak', function () {
+    return response()->file(public_path('PANDUAN_PRESENTASI_LENGKAP.html'));
+})->name('panduan.cetak');
+
 // 1. Dashboard & Multi-Company Management
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('/company/switch', [CompanyController::class, 'index'])->name('company.switch');
-Route::post('/company/store', [CompanyController::class, 'store'])->name('company.store');
-Route::post('/company/switch/{id}', [CompanyController::class, 'switch'])->name('company.switch.post');
-Route::put('/company/{id}', [CompanyController::class, 'update'])->name('company.update');
-Route::delete('/company/{id}', [CompanyController::class, 'destroy'])->name('company.destroy');
+Route::middleware('role:admin,accountant')->group(function () {
+    Route::get('/company/switch', [CompanyController::class, 'index'])->name('company.switch');
+    Route::post('/company/store', [CompanyController::class, 'store'])->name('company.store');
+    Route::post('/company/switch/{id}', [CompanyController::class, 'switch'])->name('company.switch.post');
+    Route::put('/company/{id}', [CompanyController::class, 'update'])->name('company.update');
+    Route::delete('/company/{id}', [CompanyController::class, 'destroy'])->name('company.destroy');
+});
 
 // 2. Transaksi
 Route::prefix('transactions')->name('transactions.')->group(function () {
-    Route::get('/create', [TransactionController::class, 'create'])->name('create');
-    Route::post('/store', [TransactionController::class, 'store'])->name('store');
     Route::get('/history', [TransactionController::class, 'history'])->name('history');
-    Route::post('/ai-parse', [TransactionController::class, 'aiParse'])->name('ai_parse');
-    Route::delete('/{id}', [TransactionController::class, 'destroy'])->name('destroy');
+
+    Route::middleware('subscription.writable')->group(function () {
+        Route::get('/create', [TransactionController::class, 'create'])->name('create');
+        Route::post('/store', [TransactionController::class, 'store'])->name('store');
+        Route::post('/ai-parse', [TransactionController::class, 'aiParse'])->name('ai_parse');
+        Route::delete('/{id}', [TransactionController::class, 'destroy'])->name('destroy');
+    });
 });
 
 // 3. Master Data
-Route::prefix('master')->name('master.')->group(function () {
+Route::prefix('master')->name('master.')->middleware('role:admin,accountant,auditor')->group(function () {
     Route::get('/accounts', [MasterDataController::class, 'accounts'])->name('accounts');
     Route::post('/accounts', [MasterDataController::class, 'storeAccount'])->name('accounts.store');
     Route::post('/accounts/initial-balances', [MasterDataController::class, 'updateInitialBalances'])->name('accounts.initial_balances');
@@ -62,10 +80,10 @@ Route::prefix('master')->name('master.')->group(function () {
 });
 
 // Alias for taxes.index
-Route::get('/master-taxes-alias', [MasterDataController::class, 'taxes'])->name('taxes.index');
+Route::get('/master-taxes-alias', [MasterDataController::class, 'taxes'])->name('taxes.index')->middleware('role:admin,accountant,auditor');
 
 // 3.5. Aset (Aktiva Tetap)
-Route::prefix('assets')->name('assets.')->group(function () {
+Route::prefix('assets')->name('assets.')->middleware('role:admin,accountant,auditor')->group(function () {
     Route::get('/', [\App\Http\Controllers\AssetController::class, 'index'])->name('index');
     Route::get('/create', [\App\Http\Controllers\AssetController::class, 'create'])->name('create');
     Route::post('/store', [\App\Http\Controllers\AssetController::class, 'store'])->name('store');
@@ -75,7 +93,7 @@ Route::prefix('assets')->name('assets.')->group(function () {
 });
 
 // 3.6. Tutup Buku (Period Closing)
-Route::prefix('closing')->name('closing.')->group(function () {
+Route::prefix('closing')->name('closing.')->middleware('role:admin,accountant')->group(function () {
     Route::get('/', [\App\Http\Controllers\ClosingPeriodController::class, 'index'])->name('index');
     Route::get('/create', [\App\Http\Controllers\ClosingPeriodController::class, 'create'])->name('create');
     Route::post('/store', [\App\Http\Controllers\ClosingPeriodController::class, 'store'])->name('store');
@@ -84,7 +102,7 @@ Route::prefix('closing')->name('closing.')->group(function () {
 });
 
 // 4. Laporan
-Route::prefix('reports')->name('reports.')->group(function () {
+Route::prefix('reports')->name('reports.')->middleware('role:admin,accountant,auditor')->group(function () {
     Route::get('/journal', [ReportController::class, 'journal'])->name('journal');
     Route::get('/profit-loss', [ReportController::class, 'profitAndLoss'])->name('profit_loss');
     Route::get('/balance-sheet', [ReportController::class, 'balanceSheet'])->name('balance_sheet');
@@ -96,22 +114,28 @@ Route::prefix('reports')->name('reports.')->group(function () {
 
 // 5. Pengaturan
 Route::prefix('settings')->name('settings.')->group(function () {
-    Route::get('/main', [SettingController::class, 'main'])->name('main');
-    Route::post('/main', [SettingController::class, 'updateMain'])->name('main.update');
-    Route::post('/main/test-gemini', [SettingController::class, 'testGeminiAi'])->name('main.test_gemini');
-    Route::get('/account-mappings', [SettingController::class, 'accountMappings'])->name('account_mappings');
-    Route::post('/account-mappings', [SettingController::class, 'updateAccountMappings'])->name('account_mappings.update');
     Route::get('/profile', [SettingController::class, 'profile'])->name('profile');
     Route::post('/profile', [SettingController::class, 'updateProfile'])->name('profile.update');
-    Route::get('/employees', [SettingController::class, 'employees'])->name('employees');
-    Route::post('/employees', [SettingController::class, 'storeEmployee'])->name('employees.store');
-    Route::post('/reset-data', [SettingController::class, 'resetData'])->name('reset_data');
+    Route::post('/profile/password', [SettingController::class, 'updatePassword'])->name('profile.update_password');
+
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/main', [SettingController::class, 'main'])->name('main');
+        Route::post('/main', [SettingController::class, 'updateMain'])->name('main.update');
+        Route::post('/main/test-gemini', [SettingController::class, 'testGeminiAi'])->name('main.test_gemini');
+        Route::get('/account-mappings', [SettingController::class, 'accountMappings'])->name('account_mappings');
+        Route::post('/account-mappings', [SettingController::class, 'updateAccountMappings'])->name('account_mappings.update');
+        Route::get('/employees', [SettingController::class, 'employees'])->name('employees');
+        Route::post('/employees', [SettingController::class, 'storeEmployee'])->name('employees.store');
+        Route::post('/reset-data', [SettingController::class, 'resetData'])->name('reset_data');
+    });
 });
 
 // 6. Langganan & Tagihan Tenant (Client Billing)
-Route::prefix('subscription')->name('subscription.')->group(function () {
+Route::prefix('subscription')->name('subscription.')->middleware('role:admin')->group(function () {
     Route::get('/', [\App\Http\Controllers\SubscriptionController::class, 'index'])->name('index');
     Route::post('/renew', [\App\Http\Controllers\SubscriptionController::class, 'renew'])->name('renew');
+    Route::post('/cancel-pending/{id}', [\App\Http\Controllers\SubscriptionController::class, 'cancelPendingInvoice'])->name('cancel_pending');
+    Route::post('/pay-complete/{id}', [\App\Http\Controllers\SubscriptionController::class, 'payComplete'])->name('pay_complete');
     Route::get('/invoice/{id}', [\App\Http\Controllers\SubscriptionController::class, 'invoice'])->name('invoice');
 });
 
@@ -120,8 +144,13 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\SuperAdminController::class, 'index'])->name('dashboard');
     Route::get('/tenants', [\App\Http\Controllers\SuperAdminController::class, 'tenants'])->name('tenants');
     Route::post('/tenants/{id}/update-plan', [\App\Http\Controllers\SuperAdminController::class, 'updateTenant'])->name('tenants.update_plan');
+    Route::post('/tenants/{id}/reset-password', [\App\Http\Controllers\SuperAdminController::class, 'resetTenantPassword'])->name('tenants.reset_password');
     Route::delete('/tenants/{id}', [\App\Http\Controllers\SuperAdminController::class, 'destroyTenant'])->name('tenants.destroy');
     Route::get('/invoices', [\App\Http\Controllers\SuperAdminController::class, 'invoices'])->name('invoices');
     Route::post('/invoices/{id}/approve', [\App\Http\Controllers\SuperAdminController::class, 'approveInvoice'])->name('invoices.approve');
+    Route::get('/payment-settings', [\App\Http\Controllers\SuperAdminController::class, 'paymentSettings'])->name('payment_settings');
+    Route::post('/payment-settings', [\App\Http\Controllers\SuperAdminController::class, 'updatePaymentSettings'])->name('payment_settings.update');
+    Route::get('/plans', [\App\Http\Controllers\SuperAdminController::class, 'plans'])->name('plans');
+    Route::post('/plans', [\App\Http\Controllers\SuperAdminController::class, 'updatePlans'])->name('plans.update');
 });
 

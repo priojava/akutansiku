@@ -128,6 +128,16 @@
                 @endforeach
             </select>
 
+            <!-- Filter Tag Proyek / Cabang -->
+            <select name="tag_id" class="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:bg-white focus:outline-none max-w-44 truncate">
+                <option value="">Semua Tag</option>
+                @foreach($tags as $t)
+                    <option value="{{ $t->id }}" {{ ($tagId ?? '') == $t->id ? 'selected' : '' }}>
+                        🏷️ {{ $t->name }}
+                    </option>
+                @endforeach
+            </select>
+
             <button type="submit" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition flex items-center space-x-1 cursor-pointer">
                 <i class="fa-solid fa-filter text-[10px]"></i>
                 <span>Filter</span>
@@ -262,6 +272,12 @@
                                         <i class="{{ $badgeIcon }} text-[9px]"></i>
                                         {{ $entry['type'] }}
                                     </span>
+                                    @if(!empty($entry['tag_name']))
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-white shadow-2xs" style="background-color: {{ $entry['tag_color'] ?? '#3b82f6' }}">
+                                            <i class="fa-solid fa-tag text-[8px]"></i>
+                                            {{ $entry['tag_name'] }}
+                                        </span>
+                                    @endif
                                     <span class="font-bold text-slate-900 text-xs">{{ $entry['description'] }}</span>
                                 </div>
                                 <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
@@ -402,8 +418,16 @@
                                 <span class="font-bold text-blue-600" x-text="activeEntry.type"></span>
                             </div>
                             <div>
-                                <span class="text-slate-400 text-[10px] uppercase font-bold block">Diinput Oleh</span>
-                                <span class="font-semibold text-slate-800" x-text="activeEntry.creator"></span>
+                                <span class="text-slate-400 text-[10px] uppercase font-bold block">Tag Proyek</span>
+                                <template x-if="activeEntry.tag_name">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-white mt-0.5 shadow-2xs" :style="'background-color:' + (activeEntry.tag_color || '#3b82f6')">
+                                        <i class="fa-solid fa-tag text-[8px]"></i>
+                                        <span x-text="activeEntry.tag_name"></span>
+                                    </span>
+                                </template>
+                                <template x-if="!activeEntry.tag_name">
+                                    <span class="text-slate-400 text-[11px] italic">Tanpa Tag</span>
+                                </template>
                             </div>
                             <div>
                                 <span class="text-slate-400 text-[10px] uppercase font-bold block">Status</span>

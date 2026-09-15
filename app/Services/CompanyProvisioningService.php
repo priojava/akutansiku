@@ -20,6 +20,20 @@ class CompanyProvisioningService
     public function provisionCompany(array $data, ?User $owner = null): Company
     {
         return DB::transaction(function () use ($data, $owner) {
+            // Ambil data paket dari perusahaan utama pemilik jika sudah ada
+            $parentCompany = null;
+            if ($owner) {
+                $parentCompany = Company::where('owner_id', $owner->id)
+                    ->orWhere('id', $owner->default_company_id)
+                    ->first();
+            }
+
+            $plan = $parentCompany ? $parentCompany->subscription_plan : ($data['plan_type'] ?? 'premium');
+            $planType = $parentCompany ? $parentCompany->plan_type : ($plan === 'standard' ? 'free' : 'premium');
+            $status = $parentCompany ? $parentCompany->subscription_status : 'trial';
+            $expiresAt = $parentCompany ? $parentCompany->subscription_expires_at : Carbon::now()->addDays(14);
+            $maxCompanies = $parentCompany ? ($parentCompany->max_companies ?? 3) : ($plan === 'premium' ? 3 : 1);
+
             // 1. Simpan Record Perusahaan
             $company = Company::create([
                 'name' => $data['name'],
@@ -27,10 +41,11 @@ class CompanyProvisioningService
                 'address' => $data['address'] ?? null,
                 'phone' => $data['phone'] ?? null,
                 'email' => $data['email'] ?? null,
-                'plan_type' => $data['plan_type'] ?? 'premium',
-                'subscription_plan' => $data['plan_type'] ?? 'premium',
-                'subscription_status' => 'trial',
-                'subscription_expires_at' => Carbon::now()->addDays(14),
+                'plan_type' => $planType,
+                'subscription_plan' => $plan,
+                'subscription_status' => $status,
+                'subscription_expires_at' => $expiresAt,
+                'max_companies' => $maxCompanies,
                 'conversion_date' => $data['conversion_date'] ?? Carbon::now()->startOfMonth()->toDateString(),
                 'is_initial_balance_locked' => false,
                 'owner_id' => $owner?->id,
@@ -44,6 +59,7 @@ class CompanyProvisioningService
                 'decimal_places' => 0,
                 'cache_reports' => false,
                 'cache_ar_ap' => false,
+                'gemini_api_key' => config('services.gemini.api_key') ?: 'AQ.Ab8RN6LoDJ7glHsP2wlfOaR38B9JaMfatPa3C7CCJLkBOYdksQ',
             ]);
 
             // 3. Hubungkan User sebagai Admin / Owner
