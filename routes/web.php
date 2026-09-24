@@ -22,9 +22,12 @@ Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])->name('a
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 
 
-// Redirect home to dashboard
+// Redirect home: Jika sudah login ke dashboard, jika belum ke login
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 });
 
 // Panduan Presentasi Lengkap
@@ -191,4 +194,11 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/plans', [\App\Http\Controllers\SuperAdminController::class, 'plans'])->name('plans');
     Route::post('/plans', [\App\Http\Controllers\SuperAdminController::class, 'updatePlans'])->name('plans.update');
 });
+
+// Helper Storage Link
+Route::get('/storage-link', function () {
+    \Illuminate\Support\Facades\Artisan::call('storage:link');
+    return '<div style="font-family:sans-serif;padding:40px;text-align:center;"><h2>✅ Storage Link Berhasil Dibuat!</h2><a href="/login" style="padding:10px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">Ke Halaman Login</a></div>';
+});
+
 
