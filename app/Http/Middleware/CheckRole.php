@@ -13,10 +13,10 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        $user = $request->user() ?? \App\Models\User::first();
+        $user = $request->user();
 
         if (!$user) {
-            abort(403, 'Akses ditolak: Anda belum login.');
+            return redirect()->route('login');
         }
 
         if ($user->isSuperAdmin()) {
