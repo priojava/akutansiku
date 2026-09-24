@@ -17,9 +17,13 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
+        $currentUser = auth()->user();
+        if (!$currentUser) {
+            return redirect()->route('login');
+        }
+
         $company = $this->getActiveCompany();
-        $currentUser = auth()->user() ?? User::first();
-        $currentRole = $currentUser ? $currentUser->getRoleInCompany($company->id) : 'admin';
+        $currentRole = $currentUser->getRoleInCompany($company->id);
 
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
