@@ -52,7 +52,7 @@ Route::get('/api/docs', function () {
 });
 
 // 1. Dashboard & Multi-Company Management
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('auth');
 Route::middleware('role:admin,accountant')->group(function () {
     Route::get('/company/switch', [CompanyController::class, 'index'])->name('company.switch');
     Route::post('/company/store', [CompanyController::class, 'store'])->name('company.store');
