@@ -1,0 +1,356 @@
+{
+	"info": {
+		"_postman_id": "9b1286c0-7f32-4d22-9238-akuntansi-v1",
+		"name": "Sistem Akuntansi Enterprise REST API v1.0",
+		"description": "Dokumentasi & Koleksi REST API Lengkap untuk Integrasi Sistem Akuntansi Enterprise, POS Kasir, Payroll, & Aplikasi Eksternal.\n\n### Alur Penggunaan:\n1. Jalankan `0. Autentikasi & Token` > `Login API` untuk mendapatkan `token` dan `active_company.id`.\n2. Salin token ke variable collection `{{token}}`.\n3. Request selanjutnya otomatis terotentikasi & dilindungi Tenant Guard!",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8000/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "company_id",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "0. Autentikasi & Token (Sanctum)",
+			"item": [
+				{
+					"name": "1. Login API (Dapatkan Token & Company ID)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@dapurgemoy.com\",\n    \"password\": \"password123\",\n    \"device_name\": \"Postman_Client\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login menggunakan email & password. Response mengembalikan Bearer Token dan ID perusahaan aktif Anda."
+					}
+				},
+				{
+					"name": "2. Register Akun & Perusahaan Baru",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Budi Pratama\",\n    \"email\": \"budi@kateringsukses.com\",\n    \"password\": \"password123\",\n    \"company_name\": \"Katering Sukses Mandiri\",\n    \"city\": \"Bandung\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Mendaftarkan user pemilik baru sekaligus melakukan provisioning otomatis perusahaan dan COA lengkap."
+					}
+				},
+				{
+					"name": "3. Cek Profil & Perusahaan Saya (GET /auth/me)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me"]
+						}
+					}
+				},
+				{
+					"name": "4. Logout API (Revoke Token)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "1. Master Data & COA",
+			"item": [
+				{
+					"name": "List Akun (COA / Chart of Accounts)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"url": {
+							"raw": "{{base_url}}/accounts?category=&type=&search=",
+							"host": ["{{base_url}}"],
+							"path": ["accounts"],
+							"query": [
+								{ "key": "category", "value": "" },
+								{ "key": "type", "value": "" },
+								{ "key": "search", "value": "" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Saldo Awal Akun COA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"conversion_date\": \"2026-01-01\",\n    \"balances\": [\n        {\n            \"id\": 1,\n            \"initial_debit\": 15000000,\n            \"initial_credit\": 0\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/accounts/initial-balances",
+							"host": ["{{base_url}}"],
+							"path": ["accounts", "initial-balances"]
+						}
+					}
+				},
+				{
+					"name": "List Kontak (Customer, Vendor, Karyawan)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"url": {
+							"raw": "{{base_url}}/contacts?type=customer&search=",
+							"host": ["{{base_url}}"],
+							"path": ["contacts"]
+						}
+					}
+				},
+				{
+					"name": "Tambah Kontak Baru",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"PT Sinergi Abadi\",\n    \"type\": \"customer\",\n    \"phone\": \"081234567890\",\n    \"email\": \"finance@sinergiabadi.com\",\n    \"address\": \"Jl. Sudirman No. 45, Jakarta Pusat\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/contacts",
+							"host": ["{{base_url}}"],
+							"path": ["contacts"]
+						}
+					}
+				},
+				{
+					"name": "Master Bundle Lengkap (All-In-One)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"url": {
+							"raw": "{{base_url}}/master-bundle",
+							"host": ["{{base_url}}"],
+							"path": ["master-bundle"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Transaksi & Jurnal",
+			"item": [
+				{
+					"name": "List Riwayat Transaksi",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"url": {
+							"raw": "{{base_url}}/transactions?start_date=2026-01-01&end_date=2026-12-31&per_page=20",
+							"host": ["{{base_url}}"],
+							"path": ["transactions"]
+						}
+					}
+				},
+				{
+					"name": "Catat Transaksi Cepat (1 Debit - 1 Kredit)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"date\": \"2026-09-24\",\n    \"time\": \"13:00:00\",\n    \"type\": \"income\",\n    \"debit_account_code\": \"1111\",\n    \"credit_account_code\": \"4101\",\n    \"amount\": 3500000,\n    \"notes\": \"Penjualan katering seminar batch 1\",\n    \"customer_name\": \"PT Megah Mandiri\",\n    \"department_name\": \"Divisi Katering\",\n    \"project_name\": \"Katering Seminar BUMN\",\n    \"tag_name\": \"VIP\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/transactions",
+							"host": ["{{base_url}}"],
+							"path": ["transactions"]
+						}
+					}
+				},
+				{
+					"name": "Catat Transaksi Majemuk (Compound Multi-Line Journal)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"date\": \"2026-09-24\",\n    \"time\": \"14:30:00\",\n    \"notes\": \"Pembelian bahan baku dapur & perlengkapan\",\n    \"vendor_name\": \"Toko Sembako Makmur\",\n    \"department_name\": \"Dapur Utama\",\n    \"items\": [\n        {\n            \"account_code\": \"5101\",\n            \"debit\": 5000000,\n            \"credit\": 0,\n            \"memo\": \"Beban Pokok Bahan Baku\"\n        },\n        {\n            \"account_code\": \"1111\",\n            \"debit\": 0,\n            \"credit\": 5000000,\n            \"memo\": \"Dibayar Kas Tunai\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/transactions",
+							"host": ["{{base_url}}"],
+							"path": ["transactions"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Laporan Keuangan & Dashboard",
+			"item": [
+				{
+					"name": "Dashboard Executive Summary",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"url": {
+							"raw": "{{base_url}}/dashboard/summary?start_date=2026-01-01&end_date=2026-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["dashboard", "summary"]
+						}
+					}
+				},
+				{
+					"name": "Laporan Laba Rugi (Profit & Loss)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"url": {
+							"raw": "{{base_url}}/reports/profit-loss?start_date=2026-01-01&end_date=2026-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["reports", "profit-loss"]
+						}
+					}
+				},
+				{
+					"name": "Laporan Neraca (Balance Sheet)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"url": {
+							"raw": "{{base_url}}/reports/balance-sheet?as_of_date=2026-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["reports", "balance-sheet"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. AI Natural Language Journaling",
+			"item": [
+				{
+					"name": "AI Auto-Parse Natural Language to Journal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "X-Company-Id", "value": "{{company_id}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"prompt\": \"Beli beras 5 karung seharga 750 ribu tunai dari Toko Sembako Makmur\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/ai/parse",
+							"host": ["{{base_url}}"],
+							"path": ["ai", "parse"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

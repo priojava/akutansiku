@@ -160,5 +160,87 @@ class AuthController extends Controller
 
         return redirect()->route('login')->with('success', 'Anda telah berhasil keluar dari sistem.');
     }
+
+    /**
+     * Redirect pengguna ke halaman Google OAuth Consent
+     */
+    public function redirectToGoogle()
+    {
+        if (empty(config('services.google.client_id')) || empty(config('services.google.client_secret'))) {
+            return redirect()->route('login')->with('error', 'Integrasi Google OAuth belum dikonfigurasi. Silakan isi GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET di file .env terlebih dahulu.');
+        }
+
+        return \Laravel\Socialite\Facades\Socialite::driver('google')->redirect();
+    }
+
+    /**
+     * Menangani callback respon dari Google OAuth
+     */
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = \Laravel\Socialite\Facades\Socialite::driver('google')->user();
+        } catch (\Exception $e) {
+            return redirect()->route('login')->with('error', 'Gagal terhubung dengan Google: ' . $e->getMessage());
+        }
+
+        if (!$googleUser || empty($googleUser->getEmail())) {
+            return redirect()->route('login')->with('error', 'Tidak dapat mengambil data akun Google Anda.');
+        }
+
+        // Cari user yang sudah terdaftar berdasarkan google_id atau email
+        $user = User::where('google_id', $googleUser->getId())
+            ->orWhere('email', $googleUser->getEmail())
+            ->first();
+
+        if ($user) {
+            // Update google_id & avatar jika belum ada
+            $updateData = [];
+            if (!$user->google_id) {
+                $updateData['google_id'] = $googleUser->getId();
+            }
+            if (!empty($googleUser->getAvatar()) && !$user->avatar) {
+                $updateData['avatar'] = $googleUser->getAvatar();
+            }
+            if (!empty($updateData)) {
+                $user->update($updateData);
+            }
+        } else {
+            // Pengguna baru mendaftar via Google Sign-In
+            $user = User::create([
+                'name' => $googleUser->getName() ?: 'User Google',
+                'email' => $googleUser->getEmail(),
+                'google_id' => $googleUser->getId(),
+                'avatar' => $googleUser->getAvatar(),
+                'password' => Hash::make(\Illuminate\Support\Str::random(32)),
+            ]);
+
+            // Provisioning Perusahaan default + 120 Bagan Akun (COA) + Pajak
+            $companyName = 'Bisnis ' . ($googleUser->getName() ?: 'Baru');
+            $company = $this->provisioningService->provisionCompany([
+                'name' => $companyName,
+                'email' => $googleUser->getEmail(),
+                'plan_type' => 'premium',
+            ], $user);
+
+            $user->update(['default_company_id' => $company->id]);
+        }
+
+        // Tentukan active_company_id untuk sesi pengguna
+        $companyId = $user->default_company_id;
+        if (!$companyId) {
+            $firstCompany = $user->companies()->first();
+            $companyId = $firstCompany?->id ?? Company::first()?->id;
+        }
+
+        Auth::login($user, true);
+        request()->session()->regenerate();
+        if ($companyId) {
+            session(['active_company_id' => $companyId]);
+        }
+
+        return redirect()->route('dashboard')->with('success', "Berhasil masuk dengan Akun Google ({$user->email}).");
+    }
 }
+
 

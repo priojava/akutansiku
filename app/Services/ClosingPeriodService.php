@@ -31,9 +31,9 @@ class ClosingPeriodService
         $totalNeracaDebit = 0;
         $totalNeracaCredit = 0;
 
-        $nominalCategories = ['Pendapatan', 'Harga Pokok Penjualan', 'Beban', 'Pendapatan Lainnya', 'Beban Lainnya'];
+        $nominalCategories = ['Pendapatan', 'Harga Pokok Penjualan', 'HPP', 'Beban', 'Pendapatan Lainnya', 'Beban Lainnya'];
         $revenueCategories = ['Pendapatan', 'Pendapatan Lainnya'];
-        $expenseCategories = ['Harga Pokok Penjualan', 'Beban', 'Beban Lainnya'];
+        $expenseCategories = ['Harga Pokok Penjualan', 'HPP', 'Beban', 'Beban Lainnya'];
 
         foreach ($accounts as $acc) {
             // Hitung mutasi sampai closing date

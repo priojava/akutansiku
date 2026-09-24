@@ -1,0 +1,188 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Sistem Akuntansi Enterprise REST API",
+    "description": "Dokumentasi REST API Resmi Sistem Akuntansi Enterprise Multi-Company & Multi-Tenant. Dilengkapi autentikasi Laravel Sanctum Token & Tenant Guard.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Engineering & Developer Support",
+      "email": "dev@akuntansi.local"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8000/api/v1",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "/api/v1",
+      "description": "Current Host Server (Relative)"
+    }
+  ],
+  "tags": [
+    { "name": "Authentication", "description": "Login, Register, Profil Saya, dan Token Management" },
+    { "name": "Master Data & COA", "description": "Chart of Accounts, Kontak, Departemen, Proyek, Tag, Bundle" },
+    { "name": "Transactions", "description": "Pencatatan Transaksi Cepat (1:1) dan Transaksi Majemuk" },
+    { "name": "Financial Reports", "description": "Laporan Laba Rugi, Neraca, Neraca Saldo, Buku Besar, Arus Kas" },
+    { "name": "AI Journaling", "description": "Natural Language Processing (NLP) Journaling Helper berbasis Gemini AI" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Sanctum Token"
+      }
+    },
+    "parameters": {
+      "CompanyHeader": {
+        "name": "X-Company-Id",
+        "in": "header",
+        "description": "ID Perusahaan / Tenant (Opsional, otomatis dari token jika kosong)",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 1
+        }
+      }
+    }
+  },
+  "security": [
+    { "bearerAuth": [] }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Login API & Dapatkan Bearer Token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "admin@dapurgemoy.com" },
+                  "password": { "type": "string", "example": "password123" },
+                  "device_name": { "type": "string", "example": "POS_Client" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login berhasil dan token diterbitkan" }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Register Akun & Perusahaan Baru",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password", "company_name"],
+                "properties": {
+                  "name": { "type": "string", "example": "Budi Santoso" },
+                  "email": { "type": "string", "example": "budi@kateringku.com" },
+                  "password": { "type": "string", "example": "password123" },
+                  "company_name": { "type": "string", "example": "Katering Berkah Mandiri" },
+                  "city": { "type": "string", "example": "Bandung" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Akun dan tenant berhasil dibuat" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Cek Profil Saya & Daftar Perusahaan",
+        "responses": {
+          "200": { "description": "Profil pengguna dan list company id" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Logout API & Revoke Token",
+        "responses": {
+          "200": { "description": "Token berhasil dicabut" }
+        }
+      }
+    },
+    "/accounts": {
+      "get": {
+        "tags": ["Master Data & COA"],
+        "summary": "List Chart of Accounts (COA)",
+        "parameters": [
+          { "$ref": "#/components/parameters/CompanyHeader" },
+          { "name": "category", "in": "query", "schema": { "type": "string" } },
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Daftar akun COA aktif" }
+        }
+      }
+    },
+    "/transactions": {
+      "get": {
+        "tags": ["Transactions"],
+        "summary": "List Riwayat Transaksi",
+        "parameters": [
+          { "$ref": "#/components/parameters/CompanyHeader" },
+          { "name": "start_date", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "end_date", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "per_page", "in": "query", "schema": { "type": "integer", "default": 25 } }
+        ],
+        "responses": {
+          "200": { "description": "Daftar transaksi paginated" }
+        }
+      },
+      "post": {
+        "tags": ["Transactions"],
+        "summary": "Catat Transaksi Baru (Cepat atau Majemuk)",
+        "parameters": [{ "$ref": "#/components/parameters/CompanyHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["date"],
+                "properties": {
+                  "date": { "type": "string", "format": "date", "example": "2026-09-24" },
+                  "type": { "type": "string", "example": "income" },
+                  "debit_account_code": { "type": "string", "example": "1111" },
+                  "credit_account_code": { "type": "string", "example": "4101" },
+                  "amount": { "type": "number", "example": 2500000 },
+                  "notes": { "type": "string", "example": "Penjualan Katering" },
+                  "customer_name": { "type": "string", "example": "PT Gemilang Abadi" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Transaksi berhasil disimpan" },
+          "403": { "description": "Akses ditolak (Bukan anggota company target)" },
+          "422": { "description": "Validasi gagal / Jurnal tidak seimbang" }
+        }
+      }
+    }
+  }
+}

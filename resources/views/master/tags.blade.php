@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Master Tag / Label Proyek')
+@section('title', 'Master Tag / Label Transaksi')
 
 @section('content')
 <div class="space-y-6" x-data="{
@@ -39,9 +39,10 @@
             <i class="fa-solid fa-tags text-sm"></i>
         </div>
         <div>
-            <h2 class="text-sm font-bold text-slate-800">Tentang Tag / Proyek</h2>
+            <h2 class="text-sm font-bold text-slate-800">Tentang Tag / Label Transaksi</h2>
             <p class="text-xs text-slate-600 mt-1 leading-relaxed">
-                <strong>Tag</strong> digunakan untuk mengelompokkan transaksi berdasarkan <strong>Proyek</strong> (cth: Proyek Renovasi, Event Launching), <strong>Cabang</strong> (cth: Cabang Bandung, Cabang Bekasi), atau <strong>Divisi</strong> tertentu. Dengan Tag, transaksi tetap tercatat di COA umum, namun laporan keuangan dapat difilter per Proyek / Cabang.
+                <strong>Tag</strong> digunakan sebagai <strong>penanda bebas fleksibel</strong> (seperti <em>hashtag #</em>) untuk mempermudah pencarian, penandaan cepat, atau filter operasional (contoh: <code>#Reimbursement</code>, <code>#KasKecil</code>, <code>#Urgent</code>, <code>#Audit2026</code>). Tag tidak terikat pada struktur organisasi.<br>
+                <span class="text-slate-500 mt-0.5 inline-block">💡 <em>Catatan:</em> Untuk pembagian unit kerja/divisi resmi, gunakan menu <strong>Departemen</strong>. Untuk kontrak/pekerjaan yang memiliki batas waktu dan anggaran, gunakan menu <strong>Proyek</strong>.</span>
             </p>
         </div>
     </div>
