@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Account;
 use App\Models\Asset;
+use App\Models\AssetDepreciationLog;
+use App\Models\AssetType;
 use App\Models\Company;
+use App\Services\AssetDepreciationService;
 use App\Services\JournalEntryService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -13,14 +16,18 @@ use Illuminate\Support\Str;
 class AssetController extends Controller
 {
     public function __construct(
-        protected JournalEntryService $journalService
+        protected JournalEntryService $journalService,
+        protected AssetDepreciationService $depreciationService
     ) {}
 
     public function index(Request $request)
     {
         $company = $this->getActiveCompany();
 
-        $query = Asset::with(['assetAccount', 'creditedAccount', 'expenseAccount', 'accumulatedAccount'])
+        // Otomatis seed tipe aset default jika belum ada
+        $this->depreciationService->seedDefaultAssetTypes($company->id);
+
+        $query = Asset::with(['assetType', 'assetAccount', 'creditedAccount', 'expenseAccount', 'accumulatedAccount'])
             ->where('company_id', $company->id);
 
         if ($request->filled('search')) {
@@ -32,24 +39,58 @@ class AssetController extends Controller
             });
         }
 
+        if ($request->filled('asset_type_id')) {
+            $query->where('asset_type_id', $request->asset_type_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('depreciation_status', $request->status);
+        }
+
         $assets = $query->orderBy('acquisition_date', 'desc')->get();
+        $assetTypes = AssetType::where('company_id', $company->id)->orderBy('name')->get();
 
         $totalAcquisitionCost = $assets->sum('acquisition_cost');
         $totalAccumulatedDepreciation = $assets->sum('accumulated_depreciation_amount');
         $totalBookValue = $assets->sum(fn($a) => $a->book_value);
+        $totalMonthlyDepreciation = $assets->where('depreciation_status', 'active')->sum(fn($a) => $a->monthly_depreciation);
+
+        // Ambil riwayat log penyusutan terbaru
+        $recentLogs = AssetDepreciationLog::with(['asset', 'journalEntry', 'creator'])
+            ->where('company_id', $company->id)
+            ->orderBy('period', 'desc')
+            ->orderBy('id', 'desc')
+            ->take(15)
+            ->get();
+
+        // Periode bulan aktif default untuk form proses depresiasi
+        $currentPeriod = Carbon::now()->format('Y-m');
+
+        // Deteksi seluruh periode tertunda (yang lupa diposting)
+        $pendingPeriods = $this->depreciationService->getPendingPeriods($company->id);
 
         return view('assets.index', compact(
             'company',
             'assets',
+            'assetTypes',
             'totalAcquisitionCost',
             'totalAccumulatedDepreciation',
-            'totalBookValue'
+            'totalBookValue',
+            'totalMonthlyDepreciation',
+            'recentLogs',
+            'currentPeriod',
+            'pendingPeriods'
         ));
     }
 
     public function create()
     {
         $company = $this->getActiveCompany();
+
+        // Otomatis seed tipe aset default jika belum ada
+        $this->depreciationService->seedDefaultAssetTypes($company->id);
+
+        $assetTypes = AssetType::where('company_id', $company->id)->orderBy('name')->get();
 
         // 1. Akun Asset Tetap (Kategori: Harta Tetap)
         $assetAccounts = Account::where('company_id', $company->id)
@@ -93,6 +134,7 @@ class AssetController extends Controller
 
         return view('assets.create', compact(
             'company',
+            'assetTypes',
             'assetAccounts',
             'taxAccounts',
             'creditedAccounts',
@@ -107,7 +149,9 @@ class AssetController extends Controller
         $company = $this->getActiveCompany();
 
         $validated = $request->validate([
+            'asset_type_id' => 'nullable|exists:asset_types,id',
             'acquisition_date' => 'required|date',
+            'usage_date' => 'nullable|date',
             'code' => 'required|string|max:100|unique:assets,code,NULL,id,company_id,' . $company->id,
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -132,7 +176,7 @@ class AssetController extends Controller
         $taxAmount = floatval(str_replace(['.', ','], '', $validated['tax_amount'] ?? 0));
         $salvageValue = floatval(str_replace(['.', ','], '', $validated['salvage_value'] ?? 0));
 
-        // Format kode aset tanpa spasi dan huruf kecil
+        // Format kode aset tanpa spasi
         $code = Str::slug(str_replace(' ', '', strtolower($validated['code'])), '');
 
         // Upload Foto jika ada
@@ -146,19 +190,24 @@ class AssetController extends Controller
         $usefulInputMonths = intval($request->input('useful_life_months', 0));
         $totalUsefulMonths = ($usefulYears * 12) + $usefulInputMonths;
 
+        // Tanggal Mulai Pakai (default ke acquisition_date bila tidak diisi)
+        $usageDate = !empty($validated['usage_date']) ? $validated['usage_date'] : ($validated['acquisition_date'] ?? Carbon::now()->toDateString());
+
         $depEndDate = $validated['depreciation_end_date'] ?? null;
         if ($isDepreciated && !$depEndDate && $totalUsefulMonths > 0) {
-            $depEndDate = Carbon::parse($validated['acquisition_date'])->addMonths($totalUsefulMonths)->toDateString();
+            $depEndDate = Carbon::parse($usageDate)->addMonths($totalUsefulMonths)->toDateString();
         }
 
         $userId = auth()->id() ?? $request->user()?->id;
 
         $asset = Asset::create([
             'company_id' => $company->id,
+            'asset_type_id' => $validated['asset_type_id'] ?? null,
             'code' => $code,
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'acquisition_date' => $validated['acquisition_date'],
+            'usage_date' => $usageDate,
             'acquisition_cost' => $cost,
             'asset_account_id' => $validated['asset_account_id'],
             'tax_account_id' => $validated['tax_account_id'] ?? null,
@@ -191,11 +240,108 @@ class AssetController extends Controller
                     'notes' => "Perolehan Aset Tetap: {$validated['name']} ({$code})",
                 ], $userId);
             } catch (\Exception $e) {
-                // Abaikan jika pencatatan jurnal terlewati, aset tetap tersimpan
+                // Abaikan jika jurnal terlewati
             }
         }
 
         return redirect()->route('assets.index')->with('success', "Aset '{$asset->name}' ({$asset->code}) berhasil disimpan dan dijurnal.");
+    }
+
+    /**
+     * Preview perhitungan depresiasi bulanan sebelum eksekusi (JSON)
+     */
+    public function previewDepreciation(Request $request)
+    {
+        $company = $this->getActiveCompany();
+        $period = $request->input('period', Carbon::now()->format('Y-m'));
+
+        $eligible = $this->depreciationService->getEligibleAssets($company->id, $period);
+
+        $items = array_map(function($item) {
+            /** @var Asset $a */
+            $a = $item['asset'];
+            return [
+                'id' => $a->id,
+                'code' => $a->code,
+                'name' => $a->name,
+                'type' => $a->assetType?->name ?? 'Umum',
+                'acquisition_cost' => $a->acquisition_cost,
+                'accumulated_before' => $a->accumulated_depreciation_amount,
+                'book_value_before' => $a->book_value,
+                'monthly_amount' => $item['monthly_amount'],
+                'book_value_after' => max(0, $a->book_value - $item['monthly_amount']),
+                'expense_account' => $a->expenseAccount?->name ?? 'Belum Diatur',
+                'accumulated_account' => $a->accumulatedAccount?->name ?? 'Belum Diatur',
+                'is_already_processed' => $item['is_already_processed'],
+                'has_valid_accounts' => $item['has_valid_accounts'],
+            ];
+        }, $eligible);
+
+        $totalDepreciated = array_sum(array_map(fn($i) => (!$i['is_already_processed'] && $i['has_valid_accounts']) ? $i['monthly_amount'] : 0, $items));
+
+        return response()->json([
+            'success' => true,
+            'period' => $period,
+            'items' => $items,
+            'total_amount' => $totalDepreciated,
+            'count' => count($items),
+        ]);
+    }
+
+    /**
+     * Eksekusi pencatatan jurnal penyusutan bulanan (Proses Akhir Bulan)
+     */
+    public function runDepreciation(Request $request)
+    {
+        $company = $this->getActiveCompany();
+        $request->validate([
+            'period' => 'required|date_format:Y-m',
+        ]);
+
+        $period = $request->input('period');
+        $userId = auth()->id() ?? $request->user()?->id;
+
+        $result = $this->depreciationService->executePeriodDepreciation($company->id, $period, $userId);
+
+        if ($result['processed_count'] === 0 && empty($result['errors'])) {
+            return back()->with('info', "Semua aset untuk periode {$period} sudah disusutkan sebelumnya atau tidak ada aset yang memenuhi syarat.");
+        }
+
+        $msg = "Berhasil memproses depresiasi untuk {$result['processed_count']} aset pada periode {$period} dengan total Rp " . number_format($result['total_depreciated'], 0, ',', '.') . ". Jurnal akuntansi telah diposting otomatis.";
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Eksekusi seluruh periode tertunda sekaligus (Catch-up Bulk Depreciation)
+     */
+    public function runBulkDepreciation(Request $request)
+    {
+        $company = $this->getActiveCompany();
+        $userId = auth()->id() ?? $request->user()?->id;
+
+        $result = $this->depreciationService->executeBulkPendingDepreciation($company->id, $userId);
+
+        if ($result['total_periods'] === 0) {
+            return back()->with('info', "Tidak ada periode penyusutan tertunda yang perlu diposting.");
+        }
+
+        $periodsStr = implode(', ', $result['processed_periods']);
+        $msg = "⚡ Berhasil memproses {$result['total_periods']} periode tertunggak ({$periodsStr}) untuk {$result['total_processed_assets']} aset dengan total Rp " . number_format($result['total_depreciated'], 0, ',', '.') . ". Jurnal akuntansi masing-masing akhir bulan telah diposting otomatis.";
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Batalkan (Rollback) log penyusutan tertentu
+     */
+    public function rollbackDepreciation(int $logId)
+    {
+        $company = $this->getActiveCompany();
+        $success = $this->depreciationService->rollbackLog($logId, $company->id);
+
+        if ($success) {
+            return back()->with('success', "Jurnal penyusutan dan log depresiasi berhasil dibatalkan.");
+        }
+        return back()->with('error', "Gagal membatalkan penyusutan. Log tidak ditemukan.");
     }
 
     public function toggleDepreciation(int $id)
@@ -211,12 +357,12 @@ class AssetController extends Controller
     public function exportExcel()
     {
         $company = $this->getActiveCompany();
-        $assets = Asset::with(['assetAccount', 'creditedAccount', 'expenseAccount', 'accumulatedAccount'])
+        $assets = Asset::with(['assetType', 'assetAccount', 'creditedAccount', 'expenseAccount', 'accumulatedAccount'])
             ->where('company_id', $company->id)
             ->orderBy('code')
             ->get();
 
-        $csv = "NO,KODE,NAMA,AKUN ASET TETAP,DESKRIPSI,TANGGAL AKUISISI,BIAYA AKUISISI,NILAI BUKU,AKUN DIKREDITKAN,ASET DEPRESIASI,METODE,MASA MANFAAT (TAHUN),AKUN PENYUSUTAN,AKUMULASI AKUN PENYUSUTAN,AKUMULASI PENYUSUTAN,BULAN AKHIR AKUMULASI PENYUSUTAN,STATUS DEPRESIASI\n";
+        $csv = "NO,KODE,TIPE ASET,NAMA,AKUN ASET TETAP,DESKRIPSI,TGL PEROLEHAN,TGL PAKAI,BIAYA AKUISISI,BEBAN DEPRESIASI/BLN,NILAI BUKU,AKUN DIKREDITKAN,ASET DEPRESIASI,METODE,MASA MANFAAT,AKUN BEBAN PENYUSUTAN,AKUMULASI AKUN PENYUSUTAN,AKUMULASI PENYUSUTAN,BULAN AKHIR PENYUSUTAN,STATUS DEPRESIASI\n";
 
         $no = 1;
         foreach ($assets as $a) {
@@ -232,16 +378,20 @@ class AssetController extends Controller
                 $masa = '-';
             }
             $endDate = $a->depreciation_end_date ? $a->depreciation_end_date->format('M Y') : '-';
+            $usageDateStr = $a->usage_date ? $a->usage_date->format('d/m/Y') : $a->acquisition_date->format('d/m/Y');
 
             $csv .= sprintf(
-                "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
                 $no++,
                 $a->code,
+                str_replace('"', '""', $a->assetType?->name ?? 'Umum'),
                 str_replace('"', '""', $a->name),
                 str_replace('"', '""', $a->assetAccount?->name ?? '-'),
                 str_replace('"', '""', $a->description ?? '-'),
                 $a->acquisition_date->format('d/m/Y'),
+                $usageDateStr,
                 $a->acquisition_cost,
+                $a->monthly_depreciation,
                 $a->book_value,
                 str_replace('"', '""', $a->creditedAccount?->name ?? '-'),
                 $isDep,
@@ -267,6 +417,9 @@ class AssetController extends Controller
         $asset = Asset::where('company_id', $company->id)->findOrFail($id);
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($company, $asset) {
+            // Hapus log depresiasi terkait
+            AssetDepreciationLog::where('asset_id', $asset->id)->delete();
+
             // Hapus transaksi & jurnal perolehan aset jika ada
             $transactions = \App\Models\Transaction::where('company_id', $company->id)
                 ->where('notes', 'like', "%({$asset->code})%")
@@ -283,7 +436,7 @@ class AssetController extends Controller
 
             // Hapus jurnal penyusutan aset jika pernah dijalankan
             $deprEntries = \App\Models\JournalEntry::where('company_id', $company->id)
-                ->where('notes', 'like', "%Penyusutan Aset: {$asset->name}%")
+                ->where('notes', 'like', "%Penyusutan Aset%: {$asset->name}%")
                 ->get();
             foreach ($deprEntries as $entry) {
                 \App\Models\JournalItem::where('journal_entry_id', $entry->id)->delete();
@@ -296,4 +449,3 @@ class AssetController extends Controller
         return back()->with('success', "Aset '{$asset->name}' ({$asset->code}) beserta catatan jurnalnya berhasil dihapus.");
     }
 }
-

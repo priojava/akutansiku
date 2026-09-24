@@ -15,7 +15,7 @@ class AiApiController extends Controller
 
     public function parseNaturalLanguage(Request $request): JsonResponse
     {
-        $companyId = $request->header('X-Company-Id') ?: $request->input('company_id', 1);
+        $companyId = $this->getCompanyId($request);
 
         $request->validate([
             'prompt' => 'required|string|min:3',

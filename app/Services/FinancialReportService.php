@@ -125,7 +125,7 @@ class FinancialReportService
         $piutangAccountIds = Account::where('company_id', $companyId)->where('category', 'Akun Piutang')->pluck('id')->toArray();
         $hutangAccountIds = Account::where('company_id', $companyId)->where('category', 'Akun Hutang')->pluck('id')->toArray();
         $pendapatanAccountIds = Account::where('company_id', $companyId)->whereIn('category', ['Pendapatan', 'Pendapatan Lainnya'])->pluck('id')->toArray();
-        $bebanAccountIds = Account::where('company_id', $companyId)->whereIn('category', ['Harga Pokok Penjualan', 'Beban', 'Beban Lainnya'])->pluck('id')->toArray();
+        $bebanAccountIds = Account::where('company_id', $companyId)->whereIn('category', ['Harga Pokok Penjualan', 'HPP', 'Beban', 'Beban Lainnya'])->pluck('id')->toArray();
 
         $prevDate = null;
         foreach ($dates as $dateStr) {
@@ -181,7 +181,7 @@ class FinancialReportService
         }
 
         // Beban breakdown untuk Doughnut Chart
-        $bebanMutations = $this->getCategoryMutations($companyId, ['Harga Pokok Penjualan', 'Beban', 'Beban Lainnya'], $startDate, $endDate, 'Debit');
+        $bebanMutations = $this->getCategoryMutations($companyId, ['Harga Pokok Penjualan', 'HPP', 'Beban', 'Beban Lainnya'], $startDate, $endDate, 'Debit');
         $bebanLabels = [];
         $bebanData = [];
         foreach ($bebanMutations as $bm) {
@@ -210,32 +210,32 @@ class FinancialReportService
     /**
      * Laporan Laba Rugi (Profit and Loss Statement)
      */
-    public function getProfitAndLoss(int $companyId, string $startDate, string $endDate, ?int $tagId = null): array
+    public function getProfitAndLoss(int $companyId, string $startDate, string $endDate, ?int $tagId = null, ?int $projectId = null, ?int $departmentId = null): array
     {
         // 1. Pendapatan Penjualan (Kategori: Pendapatan)
-        $pendapatanAccounts = $this->getCategoryMutations($companyId, ['Pendapatan'], $startDate, $endDate, 'Credit', $tagId);
+        $pendapatanAccounts = $this->getCategoryMutations($companyId, ['Pendapatan'], $startDate, $endDate, 'Credit', $tagId, $projectId, $departmentId);
         $totalPendapatan = array_sum(array_column($pendapatanAccounts, 'total'));
 
         // 2. Harga Pokok Penjualan (HPP)
-        $hppAccounts = $this->getCategoryMutations($companyId, ['Harga Pokok Penjualan', 'HPP'], $startDate, $endDate, 'Debit', $tagId);
+        $hppAccounts = $this->getCategoryMutations($companyId, ['Harga Pokok Penjualan', 'HPP'], $startDate, $endDate, 'Debit', $tagId, $projectId, $departmentId);
         $totalHpp = array_sum(array_column($hppAccounts, 'total'));
 
         // Laba Kotor = Total Pendapatan - Total HPP
         $labaKotor = $totalPendapatan - $totalHpp;
 
         // 3. Beban Operasional (Beban)
-        $bebanAccounts = $this->getCategoryMutations($companyId, ['Beban'], $startDate, $endDate, 'Debit', $tagId);
+        $bebanAccounts = $this->getCategoryMutations($companyId, ['Beban'], $startDate, $endDate, 'Debit', $tagId, $projectId, $departmentId);
         $totalBebanOperasional = array_sum(array_column($bebanAccounts, 'total'));
 
         // Laba Bersih Operasional / Pendapatan Operasional = Laba Kotor - Beban Operasional
         $labaBersihOperasional = $labaKotor - $totalBebanOperasional;
 
         // 4. Pendapatan Lainnya (Non Operasional)
-        $pendapatanLainnya = $this->getCategoryMutations($companyId, ['Pendapatan Lainnya'], $startDate, $endDate, 'Credit', $tagId);
+        $pendapatanLainnya = $this->getCategoryMutations($companyId, ['Pendapatan Lainnya'], $startDate, $endDate, 'Credit', $tagId, $projectId, $departmentId);
         $totalPendapatanLainnya = array_sum(array_column($pendapatanLainnya, 'total'));
 
         // 5. Beban Lainnya & Pajak Penghasilan (Non Operasional)
-        $allBebanLainnya = $this->getCategoryMutations($companyId, ['Beban Lainnya'], $startDate, $endDate, 'Debit', $tagId);
+        $allBebanLainnya = $this->getCategoryMutations($companyId, ['Beban Lainnya'], $startDate, $endDate, 'Debit', $tagId, $projectId, $departmentId);
         $bebanLainnya = [];
         $pajakPenghasilanList = [];
 
@@ -282,6 +282,305 @@ class FinancialReportService
             'total_pajak' => $totalPajak,
             'laba_setelah_pajak' => $labaSetelahPajak,
             'laba_bersih' => $labaBersih,
+        ];
+    }
+
+    /**
+     * Laporan Laba Rugi per Proyek / Tag (Profit & Loss by Project/Tag Multi-Column Matrix)
+     */
+    /**
+     * Laporan Laba Rugi Komparatif Multi-Kolom (Profit & Loss Multi-Column Matrix by Department, Project, Tag, or Month)
+     */
+    public function getProfitAndLossByProject(int $companyId, string $startDate, string $endDate, string $groupBy = 'department', array $selectedIds = []): array
+    {
+        $columns = [];
+        $isPeriodMode = in_array($groupBy, ['month', 'period']);
+
+        // 1. Tentukan daftar kolom dimensi
+        if ($isPeriodMode) {
+            $start = Carbon::parse($startDate)->startOfMonth();
+            $end = Carbon::parse($endDate)->endOfMonth();
+            $current = $start->copy();
+            
+            while ($current->lte($end)) {
+                $monthKey = $current->format('Y-m');
+                $columns[$monthKey] = [
+                    'id' => $monthKey,
+                    'name' => $current->translatedFormat('F Y'),
+                    'code' => $current->format('M Y'),
+                    'color' => '#3b82f6',
+                ];
+                $current->addMonth();
+            }
+            $dimField = "SUBSTR(je.date, 1, 7)";
+        } elseif ($groupBy === 'project') {
+            $query = \App\Models\Project::where('company_id', $companyId)->orderBy('name');
+            if (!empty($selectedIds)) {
+                $query->whereIn('id', $selectedIds);
+            }
+            $dimensionItems = $query->get();
+            foreach ($dimensionItems as $item) {
+                $columns[$item->id] = [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'code' => $item->code ?? null,
+                    'color' => $item->color ?? '#6366f1',
+                ];
+            }
+            $dimField = 'COALESCE(t.project_id, 0)';
+        } elseif ($groupBy === 'tag') {
+            $query = \App\Models\Tag::where('company_id', $companyId)->orderBy('name');
+            if (!empty($selectedIds)) {
+                $query->whereIn('id', $selectedIds);
+            }
+            $dimensionItems = $query->get();
+            foreach ($dimensionItems as $item) {
+                $columns[$item->id] = [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'code' => $item->code ?? null,
+                    'color' => $item->color ?? '#3b82f6',
+                ];
+            }
+            $dimField = 'COALESCE(t.tag_id, 0)';
+        } else {
+            // Default: department
+            $groupBy = 'department';
+            $query = \App\Models\Department::where('company_id', $companyId)->orderBy('name');
+            if (!empty($selectedIds)) {
+                $query->whereIn('id', $selectedIds);
+            }
+            $dimensionItems = $query->get();
+            foreach ($dimensionItems as $item) {
+                $columns[$item->id] = [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'code' => $item->code ?? null,
+                    'color' => '#0ea5e9',
+                ];
+            }
+            $dimField = 'COALESCE(t.department_id, 0)';
+        }
+
+        // 2. Query transaksi periode yang bersangkutan dengan join akun & jurnal
+        $journalData = DB::table('journal_items as ji')
+            ->join('journal_entries as je', 'je.id', '=', 'ji.journal_entry_id')
+            ->join('accounts as a', 'a.id', '=', 'ji.account_id')
+            ->leftJoin('transactions as t', 't.id', '=', 'je.transaction_id')
+            ->where('je.company_id', $companyId)
+            ->whereBetween('je.date', [$startDate, $endDate])
+            ->where('a.is_active', true)
+            ->whereIn('a.category', [
+                'Pendapatan',
+                'Harga Pokok Penjualan',
+                'HPP',
+                'Beban',
+                'Pendapatan Lainnya',
+                'Beban Lainnya',
+            ])
+            ->select(
+                'ji.account_id',
+                'a.code as account_code',
+                'a.name as account_name',
+                'a.category as account_category',
+                'a.type as account_type',
+                DB::raw("{$dimField} as dimension_id"),
+                DB::raw('SUM(ji.debit) as total_debit'),
+                DB::raw('SUM(ji.credit) as total_credit')
+            )
+            ->groupBy(
+                'ji.account_id',
+                'a.code',
+                'a.name',
+                'a.category',
+                'a.type',
+                DB::raw($dimField)
+            )
+            ->orderBy('a.code')
+            ->get();
+
+        // Jika tidak ada filter selectedIds dan bukan mode period, periksa apakah ada data unassigned (dimensi = 0)
+        if (empty($selectedIds) && !$isPeriodMode) {
+            $hasUnassigned = false;
+            foreach ($journalData as $row) {
+                if ($row->dimension_id == 0 || $row->dimension_id === '0') {
+                    $hasUnassigned = true;
+                    break;
+                }
+            }
+            if ($hasUnassigned) {
+                $columns[0] = [
+                    'id' => 0,
+                    'name' => 'Umum / Non-Alokasi',
+                    'code' => '-',
+                    'color' => '#64748b',
+                ];
+            }
+        }
+
+        // Helper inisialisasi saldo per kolom
+        $initAmounts = function () use ($columns) {
+            $arr = [];
+            foreach ($columns as $id => $col) {
+                $arr[$id] = 0.0;
+            }
+            $arr['total'] = 0.0;
+            return $arr;
+        };
+
+        $totalOperatingRevenue = $initAmounts();
+        $totalCogs = $initAmounts();
+        $grossProfit = $initAmounts();
+        $totalOperatingExpenses = $initAmounts();
+        $operatingIncome = $initAmounts();
+        $totalOtherIncome = $initAmounts();
+        $totalOtherExpenses = $initAmounts();
+        $totalOtherNet = $initAmounts();
+        $netProfitBeforeTax = $initAmounts();
+        $totalTax = $initAmounts();
+        $netProfitAfterTax = $initAmounts();
+
+        $accountsGrouped = [];
+
+        foreach ($journalData as $row) {
+            $accId = $row->account_id;
+            $dimId = $isPeriodMode ? (string)$row->dimension_id : (int)$row->dimension_id;
+            $category = $row->account_category;
+            $name = $row->account_name;
+            $code = $row->account_code;
+
+            // Jika dimensi baris ini tidak ada di daftar kolom yang ditampilkan, lewati
+            if (!isset($columns[$dimId])) {
+                continue;
+            }
+
+            if (in_array($category, ['Pendapatan', 'Pendapatan Lainnya'])) {
+                $amount = (float) $row->total_credit - (float) $row->total_debit;
+            } else {
+                $amount = (float) $row->total_debit - (float) $row->total_credit;
+            }
+
+            if (!isset($accountsGrouped[$accId])) {
+                $isTax = stripos($name, 'Pajak Penghasilan') !== false || in_array($code, ['8-80200', '9-90000', '9-90001']);
+                
+                $section = match ($category) {
+                    'Pendapatan' => 'operating_revenue',
+                    'Harga Pokok Penjualan', 'HPP' => 'cogs',
+                    'Beban' => 'operating_expense',
+                    'Pendapatan Lainnya' => 'other_income',
+                    'Beban Lainnya' => $isTax ? 'tax_expense' : 'other_expense',
+                    default => 'operating_expense'
+                };
+
+                $accountsGrouped[$accId] = [
+                    'id' => $accId,
+                    'code' => $code,
+                    'name' => $name,
+                    'category' => $category,
+                    'section' => $section,
+                    'amounts' => $initAmounts(),
+                ];
+            }
+
+            $accountsGrouped[$accId]['amounts'][$dimId] += $amount;
+            $accountsGrouped[$accId]['amounts']['total'] += $amount;
+        }
+
+        $operatingRevenueAccounts = [];
+        $cogsAccounts = [];
+        $operatingExpenseAccounts = [];
+        $otherIncomeAccounts = [];
+        $otherExpenseAccounts = [];
+        $taxExpenseAccounts = [];
+
+        foreach ($accountsGrouped as $acc) {
+            // Saring hanya akun yang memiliki nominal tidak nol di setidaknya satu kolom
+            $hasNonZero = false;
+            foreach ($acc['amounts'] as $val) {
+                if (abs($val) > 0.0001) {
+                    $hasNonZero = true;
+                    break;
+                }
+            }
+            if (!$hasNonZero) {
+                continue;
+            }
+
+            $section = $acc['section'];
+            if ($section === 'operating_revenue') {
+                $operatingRevenueAccounts[] = $acc;
+                foreach ($acc['amounts'] as $key => $val) {
+                    $totalOperatingRevenue[$key] += $val;
+                }
+            } elseif ($section === 'cogs') {
+                $cogsAccounts[] = $acc;
+                foreach ($acc['amounts'] as $key => $val) {
+                    $totalCogs[$key] += $val;
+                }
+            } elseif ($section === 'operating_expense') {
+                $operatingExpenseAccounts[] = $acc;
+                foreach ($acc['amounts'] as $key => $val) {
+                    $totalOperatingExpenses[$key] += $val;
+                }
+            } elseif ($section === 'other_income') {
+                $otherIncomeAccounts[] = $acc;
+                foreach ($acc['amounts'] as $key => $val) {
+                    $totalOtherIncome[$key] += $val;
+                }
+            } elseif ($section === 'other_expense') {
+                $otherExpenseAccounts[] = $acc;
+                foreach ($acc['amounts'] as $key => $val) {
+                    $totalOtherExpenses[$key] += $val;
+                }
+            } elseif ($section === 'tax_expense') {
+                $taxExpenseAccounts[] = $acc;
+                foreach ($acc['amounts'] as $key => $val) {
+                    $totalTax[$key] += $val;
+                }
+            }
+        }
+
+        foreach (array_keys($totalOperatingRevenue) as $key) {
+            $grossProfit[$key] = $totalOperatingRevenue[$key] - $totalCogs[$key];
+            $operatingIncome[$key] = $grossProfit[$key] - $totalOperatingExpenses[$key];
+            $totalOtherNet[$key] = $totalOtherIncome[$key] - $totalOtherExpenses[$key];
+            $netProfitBeforeTax[$key] = $operatingIncome[$key] + $totalOtherNet[$key];
+            $netProfitAfterTax[$key] = $netProfitBeforeTax[$key] - $totalTax[$key];
+        }
+
+        return [
+            'period' => ['start_date' => $startDate, 'end_date' => $endDate],
+            'columns' => $columns,
+            'groupBy' => $groupBy,
+            'operating_revenue' => [
+                'accounts' => $operatingRevenueAccounts,
+                'total' => $totalOperatingRevenue,
+            ],
+            'cogs' => [
+                'accounts' => $cogsAccounts,
+                'total' => $totalCogs,
+            ],
+            'gross_profit' => $grossProfit,
+            'operating_expenses' => [
+                'accounts' => $operatingExpenseAccounts,
+                'total' => $totalOperatingExpenses,
+            ],
+            'operating_income' => $operatingIncome,
+            'other_income' => [
+                'accounts' => $otherIncomeAccounts,
+                'total' => $totalOtherIncome,
+            ],
+            'other_expenses' => [
+                'accounts' => $otherExpenseAccounts,
+                'total' => $totalOtherExpenses,
+            ],
+            'other_net' => $totalOtherNet,
+            'net_profit_before_tax' => $netProfitBeforeTax,
+            'tax_expenses' => [
+                'accounts' => $taxExpenseAccounts,
+                'total' => $totalTax,
+            ],
+            'net_profit_after_tax' => $netProfitAfterTax,
         ];
     }
 
@@ -644,7 +943,7 @@ class FinancialReportService
         ];
     }
 
-    private function getCategoryMutations(int $companyId, array $categories, string $startDate, string $endDate, string $type = 'Debit', ?int $tagId = null): array
+    private function getCategoryMutations(int $companyId, array $categories, string $startDate, string $endDate, string $type = 'Debit', ?int $tagId = null, ?int $projectId = null, ?int $departmentId = null): array
     {
         $accounts = Account::where('company_id', $companyId)
             ->whereIn('category', $categories)
@@ -655,11 +954,19 @@ class FinancialReportService
         $result = [];
         foreach ($accounts as $acc) {
             $sum = JournalItem::where('account_id', $acc->id)
-                ->whereHas('journalEntry', function ($q) use ($startDate, $endDate, $tagId) {
+                ->whereHas('journalEntry', function ($q) use ($startDate, $endDate, $tagId, $projectId, $departmentId) {
                     $q->whereBetween('date', [$startDate, $endDate]);
-                    if ($tagId) {
-                        $q->whereHas('transaction', function ($t) use ($tagId) {
-                            $t->where('tag_id', $tagId);
+                    if ($tagId || $projectId || $departmentId) {
+                        $q->whereHas('transaction', function ($t) use ($tagId, $projectId, $departmentId) {
+                            if ($tagId) {
+                                $t->where('tag_id', $tagId);
+                            }
+                            if ($projectId) {
+                                $t->where('project_id', $projectId);
+                            }
+                            if ($departmentId) {
+                                $t->where('department_id', $departmentId);
+                            }
                         });
                     }
                 })
@@ -749,7 +1056,7 @@ class FinancialReportService
             // Akun Nominal untuk Laba (Rugi) Periode Berjalan
             if (in_array($acc->category, ['Pendapatan', 'Pendapatan Lainnya'])) {
                 $totalRevenue += $balanceCredit;
-            } elseif (in_array($acc->category, ['Harga Pokok Penjualan', 'Beban', 'Beban Lainnya'])) {
+            } elseif (in_array($acc->category, ['Harga Pokok Penjualan', 'HPP', 'Beban', 'Beban Lainnya'])) {
                 $totalExpense += $balanceDebit;
             }
 
@@ -912,6 +1219,258 @@ class FinancialReportService
             'total_kewajiban_dan_ekuitas' => $totalKewajibanDanEkuitas,
             'is_balanced' => round($totalAset, 2) === round($totalKewajibanDanEkuitas, 2),
             'diff' => round($totalAset - $totalKewajibanDanEkuitas, 2),
+        ];
+    }
+
+    /**
+     * Laporan Laba Rugi Komparatif Berdampingan (Side-by-side by Department / Project / Consolidated)
+     * Format formal akuntansi multi-kolom seperti Accurate / Zahir
+     */
+    public function getComparativeProfitAndLoss(
+        int $companyId,
+        string $startDate,
+        string $endDate,
+        string $groupBy = 'department',
+        ?int $tagId = null
+    ): array {
+        // 1. Tentukan Kolom Komparasi
+        $columns = [];
+        $unassignedKey = 'unassigned';
+
+        if ($groupBy === 'project') {
+            $projects = \App\Models\Project::where('company_id', $companyId)->orderBy('code')->orderBy('name')->get();
+            foreach ($projects as $proj) {
+                $columns[] = [
+                    'key' => 'proj_' . $proj->id,
+                    'id' => $proj->id,
+                    'code' => $proj->code ?: $proj->name,
+                    'name' => $proj->name,
+                ];
+            }
+        } elseif ($groupBy === 'department') {
+            $departments = \App\Models\Department::where('company_id', $companyId)->where('is_active', true)->orderBy('code')->orderBy('name')->get();
+            foreach ($departments as $dept) {
+                $columns[] = [
+                    'key' => 'dept_' . $dept->id,
+                    'id' => $dept->id,
+                    'code' => $dept->code ?: $dept->name,
+                    'name' => $dept->name,
+                ];
+            }
+        }
+
+        // 2. Query Mutasi Jurnal dengan Agregasi per Akun dan Foreign Key Dimensi
+        $groupField = $groupBy === 'project' ? 'transactions.project_id' : 'transactions.department_id';
+
+        $rawMutations = DB::table('journal_items')
+            ->join('journal_entries', 'journal_items.journal_entry_id', '=', 'journal_entries.id')
+            ->leftJoin('transactions', 'journal_entries.transaction_id', '=', 'transactions.id')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->where('journal_entries.company_id', $companyId)
+            ->whereBetween('journal_entries.date', [$startDate, $endDate])
+            ->whereIn('accounts.category', ['Pendapatan', 'Harga Pokok Penjualan', 'HPP', 'Beban', 'Pendapatan Lainnya', 'Beban Lainnya'])
+            ->when($tagId, function ($q) use ($tagId) {
+                $q->where('transactions.tag_id', $tagId);
+            })
+            ->select(
+                'accounts.id as account_id',
+                'accounts.code as account_code',
+                'accounts.name as account_name',
+                'accounts.category as account_category',
+                "{$groupField} as group_fk",
+                DB::raw('COALESCE(SUM(journal_items.debit), 0) as total_debit'),
+                DB::raw('COALESCE(SUM(journal_items.credit), 0) as total_credit')
+            )
+            ->groupBy('accounts.id', 'accounts.code', 'accounts.name', 'accounts.category', "{$groupField}")
+            ->get();
+
+        // 3. Susun Matriks Akun dan Nilai per Kolom
+        $accountMatrix = [];
+        $hasUnassignedData = false;
+
+        foreach ($rawMutations as $row) {
+            $isRevenueType = in_array($row->account_category, ['Pendapatan', 'Pendapatan Lainnya']);
+            $val = $isRevenueType
+                ? ((float)$row->total_credit - (float)$row->total_debit)
+                : ((float)$row->total_debit - (float)$row->total_credit);
+
+            if ($row->group_fk === null) {
+                $colKey = $unassignedKey;
+                if ($val != 0) {
+                    $hasUnassignedData = true;
+                }
+            } else {
+                $colKey = ($groupBy === 'project' ? 'proj_' : 'dept_') . $row->group_fk;
+            }
+
+            if (!isset($accountMatrix[$row->account_id])) {
+                $accountMatrix[$row->account_id] = [
+                    'id' => $row->account_id,
+                    'code' => $row->account_code,
+                    'name' => $row->account_name,
+                    'category' => $row->account_category,
+                    'values' => [],
+                ];
+            }
+
+            $accountMatrix[$row->account_id]['values'][$colKey] = ($accountMatrix[$row->account_id]['values'][$colKey] ?? 0) + $val;
+        }
+
+        // Jika ada data unassigned (transaksi tanpa dept/proyek) dan kita dalam mode komparasi, tambahkan kolom Umum
+        if ($hasUnassignedData && $groupBy !== 'consolidated') {
+            $columns[] = [
+                'key' => $unassignedKey,
+                'id' => null,
+                'code' => 'Umum / Lainnya',
+                'name' => 'Umum (Tanpa Alokasi)',
+            ];
+        }
+
+        // Tambahkan Kolom TOTAL di akhir (atau satu-satunya kolom jika konsolidasi / belum ada departemen)
+        $columns[] = [
+            'key' => 'total',
+            'id' => 'total',
+            'code' => 'TOTAL',
+            'name' => 'Total Konsolidasi',
+        ];
+
+        // Hitung total baris per akun
+        foreach ($accountMatrix as $accId => &$acc) {
+            $rowTotal = 0;
+            foreach ($columns as $c) {
+                if ($c['key'] !== 'total') {
+                    $rowTotal += ($acc['values'][$c['key']] ?? 0);
+                }
+            }
+            $acc['values']['total'] = $rowTotal;
+        }
+        unset($acc);
+
+        // 4. Kelompokkan Akun ke Kategori Laba Rugi
+        $pendapatanList = [];
+        $hppList = [];
+        $bebanList = [];
+        $pendapatanLainnyaList = [];
+        $bebanLainnyaList = [];
+        $pajakList = [];
+
+        foreach ($accountMatrix as $acc) {
+            // Abaikan jika semua kolom 0
+            $hasNonZero = false;
+            foreach ($acc['values'] as $v) {
+                if (round($v, 2) != 0) {
+                    $hasNonZero = true;
+                    break;
+                }
+            }
+            if (!$hasNonZero) {
+                continue;
+            }
+
+            if ($acc['category'] === 'Pendapatan') {
+                $pendapatanList[] = $acc;
+            } elseif (in_array($acc['category'], ['Harga Pokok Penjualan', 'HPP'])) {
+                $hppList[] = $acc;
+            } elseif ($acc['category'] === 'Beban') {
+                $bebanList[] = $acc;
+            } elseif ($acc['category'] === 'Pendapatan Lainnya') {
+                $pendapatanLainnyaList[] = $acc;
+            } elseif ($acc['category'] === 'Beban Lainnya') {
+                $isTax = stripos($acc['name'], 'Pajak Penghasilan') !== false
+                    || in_array($acc['code'], ['8-80200', '9-90000', '9-90001']);
+                if ($isTax) {
+                    $pajakList[] = $acc;
+                } else {
+                    $bebanLainnyaList[] = $acc;
+                }
+            }
+        }
+
+        // 5. Hitung Subtotal per Kolom
+        $totalPendapatan = [];
+        $totalHpp = [];
+        $labaKotor = [];
+        $totalBebanOperasional = [];
+        $labaOperasional = [];
+        $totalPendapatanLainnya = [];
+        $totalBebanLainnya = [];
+        $totalNonOperasionalNet = [];
+        $labaSebelumPajak = [];
+        $totalPajak = [];
+        $labaSetelahPajak = [];
+
+        foreach ($columns as $col) {
+            $ck = $col['key'];
+
+            $pSum = 0;
+            foreach ($pendapatanList as $item) {
+                $pSum += ($item['values'][$ck] ?? 0);
+            }
+            $totalPendapatan[$ck] = $pSum;
+
+            $hSum = 0;
+            foreach ($hppList as $item) {
+                $hSum += ($item['values'][$ck] ?? 0);
+            }
+            $totalHpp[$ck] = $hSum;
+
+            $labaKotor[$ck] = $totalPendapatan[$ck] - $totalHpp[$ck];
+
+            $bSum = 0;
+            foreach ($bebanList as $item) {
+                $bSum += ($item['values'][$ck] ?? 0);
+            }
+            $totalBebanOperasional[$ck] = $bSum;
+
+            $labaOperasional[$ck] = $labaKotor[$ck] - $totalBebanOperasional[$ck];
+
+            $plSum = 0;
+            foreach ($pendapatanLainnyaList as $item) {
+                $plSum += ($item['values'][$ck] ?? 0);
+            }
+            $totalPendapatanLainnya[$ck] = $plSum;
+
+            $blSum = 0;
+            foreach ($bebanLainnyaList as $item) {
+                $blSum += ($item['values'][$ck] ?? 0);
+            }
+            $totalBebanLainnya[$ck] = $blSum;
+
+            $totalNonOperasionalNet[$ck] = $totalPendapatanLainnya[$ck] - $totalBebanLainnya[$ck];
+
+            $labaSebelumPajak[$ck] = $labaOperasional[$ck] + $totalNonOperasionalNet[$ck];
+
+            $taxSum = 0;
+            foreach ($pajakList as $item) {
+                $taxSum += ($item['values'][$ck] ?? 0);
+            }
+            $totalPajak[$ck] = $taxSum;
+
+            $labaSetelahPajak[$ck] = $labaSebelumPajak[$ck] - $totalPajak[$ck];
+        }
+
+        return [
+            'period' => ['start_date' => $startDate, 'end_date' => $endDate],
+            'groupBy' => $groupBy,
+            'columns' => $columns,
+            'pendapatan_list' => $pendapatanList,
+            'total_pendapatan' => $totalPendapatan,
+            'hpp_list' => $hppList,
+            'total_hpp' => $totalHpp,
+            'laba_kotor' => $labaKotor,
+            'beban_operasional_list' => $bebanList,
+            'total_beban_operasional' => $totalBebanOperasional,
+            'laba_bersih_operasional' => $labaOperasional,
+            'pendapatan_lainnya_list' => $pendapatanLainnyaList,
+            'total_pendapatan_lainnya' => $totalPendapatanLainnya,
+            'beban_lainnya_list' => $bebanLainnyaList,
+            'total_beban_lainnya' => $totalBebanLainnya,
+            'total_non_operasional_net' => $totalNonOperasionalNet,
+            'laba_sebelum_pajak' => $labaSebelumPajak,
+            'pajak_penghasilan_list' => $pajakList,
+            'total_pajak' => $totalPajak,
+            'laba_setelah_pajak' => $labaSetelahPajak,
+            'laba_bersih' => $labaSetelahPajak,
         ];
     }
 }

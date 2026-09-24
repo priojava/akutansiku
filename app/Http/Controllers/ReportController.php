@@ -21,11 +21,40 @@ class ReportController extends Controller
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
         $tagId = $request->input('tag_id') ? intval($request->input('tag_id')) : null;
+        $projectId = $request->input('project_id') ? intval($request->input('project_id')) : null;
+        $departmentId = $request->input('department_id') ? intval($request->input('department_id')) : null;
+        $viewMode = $request->input('view_mode', 'standard'); // 'standard' or 'by_project'
+        $groupBy = $request->input('group_by', 'department'); // 'department', 'project', 'tag', 'month'
+        
+        $selectedIds = $request->input('selected_ids', []);
+        if (is_string($selectedIds)) {
+            $selectedIds = array_filter(explode(',', $selectedIds));
+        }
+        $selectedIds = is_array($selectedIds) ? array_map('intval', $selectedIds) : [];
 
-        $tags = Tag::where('company_id', $company->id)->get();
-        $report = $this->reportService->getProfitAndLoss($company->id, $startDate, $endDate, $tagId);
+        $tags = Tag::where('company_id', $company->id)->orderBy('name')->get();
+        $projects = class_exists(\App\Models\Project::class) ? \App\Models\Project::where('company_id', $company->id)->orderBy('name')->get() : collect();
+        $departments = class_exists(\App\Models\Department::class) ? \App\Models\Department::where('company_id', $company->id)->orderBy('name')->get() : collect();
 
-        return view('reports.profit_loss', compact('company', 'report', 'startDate', 'endDate', 'tags', 'tagId'));
+        $report = $this->reportService->getProfitAndLoss($company->id, $startDate, $endDate, $tagId, $projectId, $departmentId);
+        $projectReport = $this->reportService->getProfitAndLossByProject($company->id, $startDate, $endDate, $groupBy, $selectedIds);
+
+        return view('reports.profit_loss', compact(
+            'company',
+            'report',
+            'projectReport',
+            'startDate',
+            'endDate',
+            'tags',
+            'tagId',
+            'projects',
+            'projectId',
+            'departments',
+            'departmentId',
+            'viewMode',
+            'groupBy',
+            'selectedIds'
+        ));
     }
 
     public function trialBalance(Request $request)

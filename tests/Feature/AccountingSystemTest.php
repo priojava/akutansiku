@@ -64,6 +64,15 @@ class AccountingSystemTest extends TestCase
         $response->assertSee('SALDO KREDIT');
     }
 
+    public function test_balance_sheet_report_loads_and_calculates_hpp_properly(): void
+    {
+        $response = $this->get('/reports/balance-sheet');
+        $response->assertStatus(200);
+        $response->assertSee('LAPORAN NERACA');
+        $response->assertSee('JUMLAH ASET');
+        $response->assertSee('JUMLAH KEWAJIBAN DAN EKUITAS');
+    }
+
     public function test_journal_report_loads(): void
     {
         $response = $this->get('/reports/journal');
