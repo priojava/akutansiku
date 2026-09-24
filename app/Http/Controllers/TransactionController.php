@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Department;
 use App\Models\JournalEntry;
 use App\Models\JournalItem;
 use App\Models\PaymentMethod;
+use App\Models\Project;
 use App\Models\Tag;
 use App\Models\Tax;
 use App\Models\Transaction;
@@ -33,6 +35,8 @@ class TransactionController extends Controller
         $paymentMethods = PaymentMethod::where('company_id', $company->id)->get();
         $tags = Tag::where('company_id', $company->id)->get();
         $taxes = Tax::where('company_id', $company->id)->get();
+        $departments = Department::where('company_id', $company->id)->where('is_active', true)->orderBy('name')->get();
+        $projects = Project::where('company_id', $company->id)->where('status', 'active')->orderBy('name')->get();
 
         $today = Carbon::now();
 
@@ -44,7 +48,14 @@ class TransactionController extends Controller
             'type' => $a->type,
         ])->values()->toJson();
 
-        return view('transactions.create', compact('company', 'accounts', 'accountsJson', 'contacts', 'paymentMethods', 'tags', 'taxes', 'today'));
+        $projectsJson = $projects->map(fn($p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'code' => $p->code,
+            'department_id' => $p->department_id,
+        ])->values()->toJson();
+
+        return view('transactions.create', compact('company', 'accounts', 'accountsJson', 'contacts', 'paymentMethods', 'tags', 'taxes', 'departments', 'projects', 'projectsJson', 'today'));
     }
 
     public function store(Request $request)
@@ -64,6 +75,8 @@ class TransactionController extends Controller
                 'items.*.memo' => 'nullable|string',
                 'contact_id' => 'nullable|exists:contacts,id',
                 'tag_id' => 'nullable|exists:tags,id',
+                'department_id' => 'nullable|exists:departments,id',
+                'project_id' => 'nullable|exists:projects,id',
             ]);
 
             try {
@@ -110,6 +123,8 @@ class TransactionController extends Controller
                         'amount' => $totalDebit,
                         'notes' => $validated['notes'],
                         'tag_id' => $validated['tag_id'] ?? null,
+                        'department_id' => $validated['department_id'] ?? null,
+                        'project_id' => $validated['project_id'] ?? null,
                         'created_by' => $userId,
                     ]);
 
@@ -158,6 +173,8 @@ class TransactionController extends Controller
             'notes' => 'nullable|string',
             'contact_id' => 'nullable|exists:contacts,id',
             'tag_id' => 'nullable|exists:tags,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'project_id' => 'nullable|exists:projects,id',
             'tax_id' => 'nullable|exists:taxes,id',
         ]);
 
@@ -176,7 +193,7 @@ class TransactionController extends Controller
         $currentUser = auth()->user() ?? $request->user();
         $currentRole = $currentUser ? $currentUser->getRoleInCompany($company->id) : 'admin';
 
-        $query = Transaction::with(['contact', 'debitAccount', 'creditAccount', 'creator', 'journalEntry.items', 'tag'])
+        $query = Transaction::with(['contact', 'debitAccount', 'creditAccount', 'creator', 'journalEntry.items', 'tag', 'department', 'project'])
             ->where('company_id', $company->id);
 
         if (in_array($currentRole, ['cashier', 'staff']) && $currentUser) {
@@ -195,6 +212,14 @@ class TransactionController extends Controller
             $query->where('tag_id', $request->tag_id);
         }
 
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('project_id')) {
+            $query->where('project_id', $request->project_id);
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -205,8 +230,10 @@ class TransactionController extends Controller
 
         $transactions = $query->orderByDesc('date')->orderByDesc('time')->paginate(20);
         $tags = Tag::where('company_id', $company->id)->get();
+        $departments = Department::where('company_id', $company->id)->where('is_active', true)->orderBy('name')->get();
+        $projects = Project::where('company_id', $company->id)->orderBy('name')->get();
 
-        return view('transactions.history', compact('company', 'transactions', 'currentRole', 'currentUser', 'tags'));
+        return view('transactions.history', compact('company', 'transactions', 'currentRole', 'currentUser', 'tags', 'departments', 'projects'));
     }
 
     public function aiParse(Request $request)

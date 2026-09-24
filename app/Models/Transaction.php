@@ -49,4 +49,15 @@ class Transaction extends Model
     {
         return $this->belongsTo(Tag::class);
     }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
 }
+

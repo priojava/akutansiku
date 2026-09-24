@@ -16,7 +16,7 @@ class ReportApiController extends Controller
 
     public function dashboardSummary(Request $request): JsonResponse
     {
-        $companyId = $request->header('X-Company-Id') ?: $request->input('company_id', 1);
+        $companyId = $this->getCompanyId($request);
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
 
@@ -30,7 +30,7 @@ class ReportApiController extends Controller
 
     public function profitAndLoss(Request $request): JsonResponse
     {
-        $companyId = $request->header('X-Company-Id') ?: $request->input('company_id', 1);
+        $companyId = $this->getCompanyId($request);
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
 
@@ -44,7 +44,7 @@ class ReportApiController extends Controller
 
     public function trialBalance(Request $request): JsonResponse
     {
-        $companyId = $request->header('X-Company-Id') ?: $request->input('company_id', 1);
+        $companyId = $this->getCompanyId($request);
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
 
@@ -58,7 +58,7 @@ class ReportApiController extends Controller
 
     public function generalLedger(Request $request): JsonResponse
     {
-        $companyId = $request->header('X-Company-Id') ?: $request->input('company_id', 1);
+        $companyId = $this->getCompanyId($request);
         $accountId = $request->input('account_id') ? intval($request->input('account_id')) : null;
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
@@ -73,7 +73,7 @@ class ReportApiController extends Controller
 
     public function cashFlow(Request $request): JsonResponse
     {
-        $companyId = $request->header('X-Company-Id') ?: $request->input('company_id', 1);
+        $companyId = $this->getCompanyId($request);
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
 
@@ -87,10 +87,28 @@ class ReportApiController extends Controller
 
     public function balanceSheet(Request $request): JsonResponse
     {
-        $companyId = $request->header('X-Company-Id') ?: $request->input('company_id', 1);
+        $companyId = $this->getCompanyId($request);
         $asOfDate = $request->input('as_of_date', $request->input('end_date', Carbon::now()->toDateString()));
 
         $data = $this->reportService->getBalanceSheet($companyId, $asOfDate);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $data,
+        ]);
+    }
+
+    public function journal(Request $request): JsonResponse
+    {
+        $companyId = $this->getCompanyId($request);
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
+        $type = $request->input('type');
+        $accountId = $request->input('account_id') ? intval($request->input('account_id')) : null;
+        $search = $request->input('search');
+        $tagId = $request->input('tag_id') ? intval($request->input('tag_id')) : null;
+
+        $data = $this->reportService->getJournalReport($companyId, $startDate, $endDate, $type, $accountId, $search, $tagId);
 
         return response()->json([
             'status' => 'success',

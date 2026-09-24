@@ -52,6 +52,8 @@ class JournalEntryService
                 'amount' => $amount,
                 'notes' => $data['notes'] ?? '',
                 'tag_id' => $data['tag_id'] ?? null,
+                'department_id' => $data['department_id'] ?? null,
+                'project_id' => $data['project_id'] ?? null,
                 'tax_id' => $data['tax_id'] ?? null,
                 'created_by' => $userId,
             ]);

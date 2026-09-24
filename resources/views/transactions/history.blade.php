@@ -35,16 +35,16 @@
 
     <!-- Filter & Search -->
     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <form method="GET" action="{{ route('transactions.history') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <form method="GET" action="{{ route('transactions.history') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <div>
                 <label class="block text-[11px] font-semibold text-slate-600 mb-1">Cari Transaksi</label>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Nomor TRX / Catatan..."
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Nomor / Catatan..."
                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none">
             </div>
             <div>
-                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Jenis Transaksi</label>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Jenis</label>
                 <select name="type" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none">
-                    <option value="">Semua Jenis</option>
+                    <option value="">Semua</option>
                     <option value="income" {{ request('type') == 'income' ? 'selected' : '' }}>Pemasukan</option>
                     <option value="expense" {{ request('type') == 'expense' ? 'selected' : '' }}>Pengeluaran</option>
                     <option value="transfer" {{ request('type') == 'transfer' ? 'selected' : '' }}>Transfer Kas</option>
@@ -52,7 +52,29 @@
                 </select>
             </div>
             <div>
-                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tag Proyek / Cabang</label>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Departemen</label>
+                <select name="department_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none">
+                    <option value="">Semua Dept</option>
+                    @foreach($departments as $d)
+                        <option value="{{ $d->id }}" {{ request('department_id') == $d->id ? 'selected' : '' }}>
+                            {{ $d->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Proyek</label>
+                <select name="project_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none">
+                    <option value="">Semua Proyek</option>
+                    @foreach($projects as $p)
+                        <option value="{{ $p->id }}" {{ request('project_id') == $p->id ? 'selected' : '' }}>
+                            {{ $p->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tag / Label</label>
                 <select name="tag_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none">
                     <option value="">Semua Tag</option>
                     @foreach($tags as $t)
@@ -66,7 +88,7 @@
                 <label class="block text-[11px] font-semibold text-slate-600 mb-1">Dari Tanggal</label>
                 <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:outline-none">
             </div>
-            <div class="flex items-end space-x-2">
+            <div class="flex items-end space-x-1.5">
                 <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
                     Filter
                 </button>
@@ -102,13 +124,23 @@
                                 <div class="font-semibold text-blue-600 font-mono text-xs">
                                     {{ $trx->transaction_number }}
                                 </div>
-                                @if($trx->tag)
-                                    <div class="mt-1">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold text-white shadow-2xs" style="background-color: {{ $trx->tag->color ?? '#3b82f6' }}">
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    @if($trx->department)
+                                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200" title="Departemen">
+                                            <i class="fa-solid fa-building-user text-[8px] mr-1"></i>{{ $trx->department->name }}
+                                        </span>
+                                    @endif
+                                    @if($trx->project)
+                                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Proyek">
+                                            <i class="fa-solid fa-diagram-project text-[8px] mr-1"></i>{{ $trx->project->name }}
+                                        </span>
+                                    @endif
+                                    @if($trx->tag)
+                                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold text-white shadow-2xs" style="background-color: {{ $trx->tag->color ?? '#3b82f6' }}">
                                             <i class="fa-solid fa-tag text-[8px] mr-1"></i>{{ $trx->tag->name }}
                                         </span>
-                                    </div>
-                                @endif
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-5 py-4 text-slate-600">
                                 {{ $trx->date->format('d M Y') }} <span class="text-[10px] text-slate-400">{{ $trx->time }}</span>

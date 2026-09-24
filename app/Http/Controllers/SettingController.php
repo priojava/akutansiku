@@ -202,8 +202,27 @@ class SettingController extends Controller
     {
         $company = $this->getActiveCompany();
         $user = auth()->user() ?? User::first();
+        $tokens = $user ? $user->tokens()->orderByDesc('created_at')->get() : collect();
 
-        return view('settings.profile', compact('company', 'user'));
+        return view('settings.profile', compact('company', 'user', 'tokens'));
+    }
+
+    public function generateApiToken(Request $request)
+    {
+        $user = auth()->user() ?? User::first();
+        $tokenName = $request->input('token_name', 'Integration Token (' . now()->format('d M Y') . ')');
+
+        $token = $user->createToken($tokenName)->plainTextToken;
+
+        return back()->with('generated_token', $token)->with('success', 'API Token berhasil dibuat. Salin token ini sekarang karena tidak akan ditampilkan lagi!');
+    }
+
+    public function revokeApiToken(int $id)
+    {
+        $user = auth()->user() ?? User::first();
+        $user->tokens()->where('id', $id)->delete();
+
+        return back()->with('success', 'API Token berhasil dicabut.');
     }
 
     public function updateProfile(Request $request)

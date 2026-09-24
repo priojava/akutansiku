@@ -17,6 +17,11 @@ Route::post('/register', [AuthController::class, 'register'])->name('register.po
 Route::get('/login/quick/{role}', [AuthController::class, 'quickLogin'])->name('login.quick');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Google OAuth 2.0 Single Sign-On
+Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])->name('auth.google');
+Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
+
+
 // Redirect home to dashboard
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -34,6 +39,14 @@ Route::get('/panduan', function () {
 Route::get('/panduan/cetak', function () {
     return response()->file(public_path('PANDUAN_PRESENTASI_LENGKAP.html'));
 })->name('panduan.cetak');
+
+// Dokumentasi REST API Interaktif & Developer Portal
+Route::get('/docs/api', function () {
+    return view('docs.api');
+})->name('docs.api');
+Route::get('/api/docs', function () {
+    return view('docs.api');
+});
 
 // 1. Dashboard & Multi-Company Management
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -77,6 +90,25 @@ Route::prefix('master')->name('master.')->middleware('role:admin,accountant,audi
     Route::post('/tags', [MasterDataController::class, 'storeTag'])->name('tags.store');
     Route::put('/tags/{id}', [MasterDataController::class, 'updateTag'])->name('tags.update');
     Route::delete('/tags/{id}', [MasterDataController::class, 'destroyTag'])->name('tags.destroy');
+
+    // Master Departemen (Divisi)
+    Route::get('/departments', [MasterDataController::class, 'departments'])->name('departments');
+    Route::post('/departments', [MasterDataController::class, 'storeDepartment'])->name('departments.store');
+    Route::put('/departments/{id}', [MasterDataController::class, 'updateDepartment'])->name('departments.update');
+    Route::delete('/departments/{id}', [MasterDataController::class, 'destroyDepartment'])->name('departments.destroy');
+
+    // Master Proyek (Project)
+    Route::get('/projects', [MasterDataController::class, 'projects'])->name('projects');
+    Route::post('/projects', [MasterDataController::class, 'storeProject'])->name('projects.store');
+    Route::put('/projects/{id}', [MasterDataController::class, 'updateProject'])->name('projects.update');
+    Route::delete('/projects/{id}', [MasterDataController::class, 'destroyProject'])->name('projects.destroy');
+    Route::get('/api/projects', [MasterDataController::class, 'apiProjects'])->name('api.projects');
+
+    // Master Tipe Aset (Asset Types)
+    Route::get('/asset-types', [\App\Http\Controllers\AssetTypeController::class, 'index'])->name('asset_types');
+    Route::post('/asset-types', [\App\Http\Controllers\AssetTypeController::class, 'store'])->name('asset_types.store');
+    Route::put('/asset-types/{id}', [\App\Http\Controllers\AssetTypeController::class, 'update'])->name('asset_types.update');
+    Route::delete('/asset-types/{id}', [\App\Http\Controllers\AssetTypeController::class, 'destroy'])->name('asset_types.destroy');
 });
 
 // Alias for taxes.index
@@ -89,6 +121,10 @@ Route::prefix('assets')->name('assets.')->middleware('role:admin,accountant,audi
     Route::post('/store', [\App\Http\Controllers\AssetController::class, 'store'])->name('store');
     Route::get('/export', [\App\Http\Controllers\AssetController::class, 'exportExcel'])->name('export');
     Route::post('/toggle-depreciation/{id}', [\App\Http\Controllers\AssetController::class, 'toggleDepreciation'])->name('toggle_depreciation');
+    Route::get('/depreciation/preview', [\App\Http\Controllers\AssetController::class, 'previewDepreciation'])->name('depreciation.preview');
+    Route::post('/depreciation/run', [\App\Http\Controllers\AssetController::class, 'runDepreciation'])->name('depreciation.run');
+    Route::post('/depreciation/run-bulk', [\App\Http\Controllers\AssetController::class, 'runBulkDepreciation'])->name('depreciation.run_bulk');
+    Route::delete('/depreciation/rollback/{id}', [\App\Http\Controllers\AssetController::class, 'rollbackDepreciation'])->name('depreciation.rollback');
     Route::delete('/{id}', [\App\Http\Controllers\AssetController::class, 'destroy'])->name('destroy');
 });
 
@@ -117,6 +153,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::get('/profile', [SettingController::class, 'profile'])->name('profile');
     Route::post('/profile', [SettingController::class, 'updateProfile'])->name('profile.update');
     Route::post('/profile/password', [SettingController::class, 'updatePassword'])->name('profile.update_password');
+    Route::post('/profile/token/generate', [SettingController::class, 'generateApiToken'])->name('profile.token.generate');
+    Route::delete('/profile/token/{id}', [SettingController::class, 'revokeApiToken'])->name('profile.token.revoke');
 
     Route::middleware('role:admin')->group(function () {
         Route::get('/main', [SettingController::class, 'main'])->name('main');

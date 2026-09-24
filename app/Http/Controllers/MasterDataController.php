@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Department;
 use App\Models\PaymentMethod;
+use App\Models\Project;
 use App\Models\Tag;
 use App\Models\Tax;
 use Illuminate\Http\Request;
@@ -449,6 +451,200 @@ class MasterDataController extends Controller
         $tag->delete();
 
         return redirect()->route('master.tags')->with('success', "Tag '{$name}' berhasil dihapus.");
+    }
+
+    // ==========================================
+    // 6. MASTER DEPARTEMEN
+    // ==========================================
+    public function departments(Request $request)
+    {
+        $company = $this->getActiveCompany();
+
+        $query = Department::where('company_id', $company->id)->withCount('projects', 'transactions');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        $departments = $query->orderBy('name')->get();
+
+        return view('master.departments', compact('company', 'departments'));
+    }
+
+    public function storeDepartment(Request $request)
+    {
+        $company = $this->getActiveCompany();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+            'code' => 'nullable|string|max:50',
+            'description' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        Department::create([
+            'company_id' => $company->id,
+            'name' => $validated['name'],
+            'code' => $validated['code'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
+        ]);
+
+        return redirect()->route('master.departments')->with('success', "Departemen '{$validated['name']}' berhasil ditambahkan.");
+    }
+
+    public function updateDepartment(Request $request, int $id)
+    {
+        $company = $this->getActiveCompany();
+        $department = Department::where('company_id', $company->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+            'code' => 'nullable|string|max:50',
+            'description' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $department->update([
+            'name' => $validated['name'],
+            'code' => $validated['code'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'is_active' => $request->has('is_active') ? (bool) $request->is_active : false,
+        ]);
+
+        return redirect()->route('master.departments')->with('success', "Departemen '{$department->name}' berhasil diperbarui.");
+    }
+
+    public function destroyDepartment(int $id)
+    {
+        $company = $this->getActiveCompany();
+        $department = Department::where('company_id', $company->id)->findOrFail($id);
+        $name = $department->name;
+        $department->delete();
+
+        return redirect()->route('master.departments')->with('success', "Departemen '{$name}' berhasil dihapus.");
+    }
+
+    // ==========================================
+    // 7. MASTER PROYEK (PROJECT)
+    // ==========================================
+    public function projects(Request $request)
+    {
+        $company = $this->getActiveCompany();
+
+        $departments = Department::where('company_id', $company->id)->where('is_active', true)->orderBy('name')->get();
+
+        $query = Project::where('company_id', $company->id)->with('department')->withCount('transactions');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $projects = $query->orderBy('name')->get();
+
+        return view('master.projects', compact('company', 'projects', 'departments'));
+    }
+
+    public function storeProject(Request $request)
+    {
+        $company = $this->getActiveCompany();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+            'code' => 'nullable|string|max:50',
+            'department_id' => 'nullable|exists:departments,id',
+            'contract_amount' => 'nullable|numeric|min:0',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'status' => 'required|in:active,completed,on_hold',
+            'description' => 'nullable|string',
+        ]);
+
+        Project::create([
+            'company_id' => $company->id,
+            'department_id' => $validated['department_id'] ?? null,
+            'name' => $validated['name'],
+            'code' => $validated['code'] ?? null,
+            'contract_amount' => $validated['contract_amount'] ?? 0,
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+            'status' => $validated['status'],
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        return redirect()->route('master.projects')->with('success', "Proyek '{$validated['name']}' berhasil ditambahkan.");
+    }
+
+    public function updateProject(Request $request, int $id)
+    {
+        $company = $this->getActiveCompany();
+        $project = Project::where('company_id', $company->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+            'code' => 'nullable|string|max:50',
+            'department_id' => 'nullable|exists:departments,id',
+            'contract_amount' => 'nullable|numeric|min:0',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'status' => 'required|in:active,completed,on_hold',
+            'description' => 'nullable|string',
+        ]);
+
+        $project->update([
+            'department_id' => $validated['department_id'] ?? null,
+            'name' => $validated['name'],
+            'code' => $validated['code'] ?? null,
+            'contract_amount' => $validated['contract_amount'] ?? 0,
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+            'status' => $validated['status'],
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        return redirect()->route('master.projects')->with('success', "Proyek '{$project->name}' berhasil diperbarui.");
+    }
+
+    public function destroyProject(int $id)
+    {
+        $company = $this->getActiveCompany();
+        $project = Project::where('company_id', $company->id)->findOrFail($id);
+        $name = $project->name;
+        $project->delete();
+
+        return redirect()->route('master.projects')->with('success', "Proyek '{$name}' berhasil dihapus.");
+    }
+
+    public function apiProjects(Request $request)
+    {
+        $company = $this->getActiveCompany();
+        $query = Project::where('company_id', $company->id)->where('status', 'active');
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        $projects = $query->orderBy('name')->get(['id', 'code', 'name', 'department_id']);
+
+        return response()->json($projects);
     }
 }
 

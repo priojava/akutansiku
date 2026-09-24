@@ -5,6 +5,7 @@
 @section('content')
     <script>
         window.accountsData = {!! $accountsJson ?? '[]' !!};
+        window.projectsData = {!! $projectsJson ?? '[]' !!};
     </script>
 
     <div :class="entryMode === 'multi' ? 'max-w-7xl' : 'max-w-6xl'" class="mx-auto transition-all duration-300" x-data="{ 
@@ -18,6 +19,13 @@
             creditAccount: '{{ old('credit_account_id', '') }}',
             amount: '{{ old('amount', '') }}',
             notes: '{{ old('notes', '') }}',
+            selectedDepartment: '{{ old('department_id', '') }}',
+            selectedProject: '{{ old('project_id', '') }}',
+            projectsList: window.projectsData || [],
+            get filteredProjects() {
+                if (!this.selectedDepartment) return this.projectsList;
+                return this.projectsList.filter(p => p.department_id == this.selectedDepartment);
+            },
             showOptional: false,
             accounts: window.accountsData || [],
 
@@ -304,14 +312,19 @@
                                         return this.accounts.find(a => a.id == this.debitAccount);
                                     }
                                 }" class="relative">
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                    Simpan ke (Debit) <span class="text-rose-500">*</span>
-                                    <span class="text-[10px] font-normal text-slate-400 ml-1">
-                                        <span x-show="type === 'income'">(Akun Kas/Bank penerima uang)</span>
-                                        <span x-show="type === 'expense'">(Akun Beban / Biaya yang dibayar)</span>
-                                        <span x-show="type === 'transfer'">(Akun Kas/Bank tujuan transfer)</span>
-                                    </span>
-                                </label>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-xs font-semibold text-slate-700">
+                                        Simpan ke (Debit) <span class="text-rose-500">*</span>
+                                        <span class="text-[10px] font-normal text-slate-400 ml-1">
+                                            <span x-show="type === 'income'">(Akun Kas/Bank penerima uang atau Piutang)</span>
+                                            <span x-show="type === 'expense'">(Akun Beban, Biaya, atau Aset/Persediaan yang dibeli)</span>
+                                            <span x-show="type === 'transfer'">(Akun Kas/Bank tujuan transfer)</span>
+                                        </span>
+                                    </label>
+                                    <a href="{{ route('master.accounts') }}" class="open-in-tab text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-bold flex items-center cursor-pointer shrink-0 ml-2" data-tab-title="Master Akun (COA)" data-tab-icon="fa-solid fa-database">
+                                        <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola Akun
+                                    </a>
+                                </div>
                                 <input type="hidden" name="debit_account_id" :value="debitAccount"
                                     :disabled="entryMode !== 'simple'">
 
@@ -393,14 +406,19 @@
                                         return this.accounts.find(a => a.id == this.creditAccount);
                                     }
                                 }" class="relative">
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                    Diterima dari (Kredit) <span class="text-rose-500">*</span>
-                                    <span class="text-[10px] font-normal text-slate-400 ml-1">
-                                        <span x-show="type === 'income'">(Akun Pendapatan / Sumber dana)</span>
-                                        <span x-show="type === 'expense'">(Akun Kas/Bank yang mengeluarkan uang)</span>
-                                        <span x-show="type === 'transfer'">(Akun Kas/Bank asal pengiriman)</span>
-                                    </span>
-                                </label>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-xs font-semibold text-slate-700">
+                                        Diterima dari (Kredit) <span class="text-rose-500">*</span>
+                                        <span class="text-[10px] font-normal text-slate-400 ml-1">
+                                            <span x-show="type === 'income'">(Akun Pendapatan atau Sumber dana)</span>
+                                            <span x-show="type === 'expense'">(Akun Kas/Bank yang mengeluarkan uang atau Hutang Usaha)</span>
+                                            <span x-show="type === 'transfer'">(Akun Kas/Bank asal pengiriman)</span>
+                                        </span>
+                                    </label>
+                                    <a href="{{ route('master.accounts') }}" class="open-in-tab text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-bold flex items-center cursor-pointer shrink-0 ml-2" data-tab-title="Master Akun (COA)" data-tab-icon="fa-solid fa-database">
+                                        <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola Akun
+                                    </a>
+                                </div>
                                 <input type="hidden" name="credit_account_id" :value="creditAccount"
                                     :disabled="entryMode !== 'simple'">
 
@@ -679,10 +697,61 @@
                                 class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
                         </div>
 
-                        <!-- Kontak & Tag Proyek / Cabang (Grid 2 Kolom) -->
+                        <!-- Alokasi Departemen & Proyek (Job Costing) -->
+                        <div class="bg-gradient-to-r from-slate-50 to-indigo-50/40 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                            <div class="flex items-center justify-between text-xs font-bold text-slate-800">
+                                <span class="flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-building-user text-indigo-600"></i>
+                                    <span>Alokasi Departemen & Proyek (Job Costing)</span>
+                                </span>
+                                <span class="text-[10px] text-slate-400 font-normal">Struktur Finansial</span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Departemen -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-[11px] font-semibold text-slate-700">Departemen / Divisi (Opsional)</label>
+                                        <a href="{{ route('master.departments') }}" class="open-in-tab text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-bold flex items-center cursor-pointer" data-tab-title="Master Departemen" data-tab-icon="fa-solid fa-building-user">
+                                            <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola
+                                        </a>
+                                    </div>
+                                    <select name="department_id" x-model="selectedDepartment" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                        <option value="">-- Tanpa Departemen --</option>
+                                        @foreach($departments as $dept)
+                                            <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                                                🏢 {{ $dept->name }} {{ $dept->code ? '('.$dept->code.')' : '' }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <!-- Proyek -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-[11px] font-semibold text-slate-700">Proyek / Pekerjaan (Opsional)</label>
+                                        <a href="{{ route('master.projects') }}" class="open-in-tab text-[10px] text-indigo-600 hover:text-indigo-800 hover:underline font-bold flex items-center cursor-pointer" data-tab-title="Master Proyek" data-tab-icon="fa-solid fa-diagram-project">
+                                            <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola
+                                        </a>
+                                    </div>
+                                    <select name="project_id" x-model="selectedProject" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                        <option value="">-- Tanpa Proyek --</option>
+                                        <template x-for="p in filteredProjects" :key="p.id">
+                                            <option :value="p.id" :selected="selectedProject == p.id" x-text="'📁 ' + p.name + (p.code ? ' (' + p.code + ')' : '')"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kontak & Tag Label Bebas (Grid 2 Kolom) -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Pelanggan / Vendor (Opsional)</label>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-xs font-semibold text-slate-700">Pelanggan / Vendor (Opsional)</label>
+                                    <a href="{{ route('master.contacts') }}" class="open-in-tab text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-bold flex items-center cursor-pointer" data-tab-title="Pelanggan & Vendor" data-tab-icon="fa-solid fa-address-book">
+                                        <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola
+                                    </a>
+                                </div>
                                 <x-searchable-contact-select 
                                     name="contact_id" 
                                     :options="$contacts" 
@@ -692,13 +761,13 @@
                             </div>
                             <div>
                                 <div class="flex items-center justify-between mb-1">
-                                    <label class="block text-xs font-semibold text-slate-700">Tag Proyek / Cabang (Opsional)</label>
-                                    <a href="{{ route('master.tags') }}" target="_blank" class="text-[10px] text-blue-600 hover:underline font-semibold flex items-center">
+                                    <label class="block text-xs font-semibold text-slate-700">Tag / Label Bebas (# Opsional)</label>
+                                    <a href="{{ route('master.tags') }}" class="open-in-tab text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-bold flex items-center cursor-pointer" data-tab-title="Tag / Label" data-tab-icon="fa-solid fa-tags">
                                         <i class="fa-solid fa-plus text-[8px] mr-1"></i> Kelola Tag
                                     </a>
                                 </div>
                                 <select name="tag_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                    <option value="">-- Tanpa Tag Proyek --</option>
+                                    <option value="">-- Tanpa Tag Label --</option>
                                     @foreach($tags as $tag)
                                         <option value="{{ $tag->id }}" {{ old('tag_id') == $tag->id ? 'selected' : '' }}>
                                             🏷️ {{ $tag->name }}
@@ -787,7 +856,8 @@
                         tersimpan.
                     </p>
                     <a href="{{ route('transactions.history') }}"
-                        class="block text-center w-full py-2.5 px-4 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg shadow-sm transition">
+                        class="open-in-tab block text-center w-full py-2.5 px-4 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg shadow-sm transition cursor-pointer"
+                        data-tab-title="Riwayat Transaksi" data-tab-icon="fa-solid fa-clock-rotate-left">
                         Buka Riwayat Transaksi
                     </a>
                 </div>
